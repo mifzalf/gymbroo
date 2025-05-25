@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:gymbroo/pages/auth/register.dart';
 
 class LoginPage extends StatefulWidget {
   const LoginPage({super.key});
@@ -10,6 +11,7 @@ class LoginPage extends StatefulWidget {
 class _LoginPageState extends State<LoginPage> {
   final TextEditingController _emailController = TextEditingController();
   final TextEditingController _passwordController = TextEditingController();
+  bool _isPasswordVisible = false; // Added password visibility toggle
 
   @override
   void initState() {
@@ -100,7 +102,7 @@ class _LoginPageState extends State<LoginPage> {
               
               const SizedBox(height: 20),
               
-              // Password Field
+              // Password Field with Toggle Visibility
               Container(
                 decoration: BoxDecoration(
                   color: const Color(0xFF2D2D2D),
@@ -108,7 +110,7 @@ class _LoginPageState extends State<LoginPage> {
                 ),
                 child: TextField(
                   controller: _passwordController,
-                  obscureText: true,
+                  obscureText: !_isPasswordVisible, // Toggle based on state
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
@@ -118,6 +120,18 @@ class _LoginPageState extends State<LoginPage> {
                       Icons.lock_outline,
                       color: Colors.grey,
                       size: 20,
+                    ),
+                    suffixIcon: IconButton(
+                      icon: Icon(
+                        _isPasswordVisible ? Icons.visibility : Icons.visibility_off,
+                        color: Colors.grey,
+                        size: 20,
+                      ),
+                      onPressed: () {
+                        setState(() {
+                          _isPasswordVisible = !_isPasswordVisible;
+                        });
+                      },
                     ),
                     hintText: 'Enter Your Password',
                     hintStyle: const TextStyle(
@@ -149,7 +163,7 @@ class _LoginPageState extends State<LoginPage> {
                     // Navigate to home or dashboard
                   },
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFE6E886), // Yellow color
+                    backgroundColor: const Color(0xFFE8D864), // Yellow color
                     foregroundColor: Colors.black,
                     padding: const EdgeInsets.symmetric(vertical: 18),
                     shape: RoundedRectangleBorder(
@@ -202,8 +216,12 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     GestureDetector(
                       onTap: () {
-                        // Navigate to register page
-                        print('Navigate to register page');
+                        Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const RegisterPage(),
+                            ),
+                          );
                       },
                       child: Container(
                         width: 48,
