@@ -98,40 +98,40 @@ class _memberPageState extends State<memberPage> {
   }
 
   void _navigateToDashboardpPage() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const dashboardAdmin()),
-    );
+    // Navigator.push(
+    //   context,
+    //   MaterialPageRoute(builder: (context) => const dashboardAdmin()),
+    // );
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Navigate to dashboard Page')),
     );
   }
 
   void _navigateToMembershipPage() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const MembershipPage()),
-    );
+    // Navigator.push(
+    //   context,
+    //   MaterialPageRoute(builder: (context) => const MembershipPage()),
+    // );
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Navigate to Membership Page')),
     );
   }
 
   void _navigateToTrainingPage() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const TrainingPage()),
-    );
+    // Navigator.push(
+    //   context,
+    //   MaterialPageRoute(builder: (context) => const TrainingPage()),
+    // );
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Navigate to Training Page')),
     );
   }
 
   void _navigateToTrainerPage() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const TrainerPage()),
-    );
+    // Navigator.push(
+    //   context,
+    //   MaterialPageRoute(builder: (context) => const TrainerPage()),
+    // );
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Navigate to Trainer Page')),
     );

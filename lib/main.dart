@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gymbroo/pages/admin/dashboardPage.dart';
+import 'package:gymbroo/pages/users/dashboardPage.dart';
 import 'pages/startPages.dart';
 
 void main() {
@@ -36,7 +37,7 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const dashboardAdmin(),
+      home: const DashboardUser(),
       
     );
   }
