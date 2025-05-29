@@ -12,6 +12,7 @@ dependencies:
   cupertino_icons: ^1.0.8
   image_picker: ^1.1.2
   shared_preferences: ^2.2.2 # versi bisa disesuaikan dengan versi terbaru
+  url_launcher: ^6.2.2
 
 
 dev_dependencies:

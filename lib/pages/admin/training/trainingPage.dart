@@ -3,6 +3,9 @@ import 'package:gymbroo/pages/admin/dashboardPage.dart';
 import 'package:gymbroo/pages/admin/memberPage.dart';
 import 'package:gymbroo/pages/admin/membership/membershipPage.dart';
 import 'package:gymbroo/pages/admin/trainer/trainerPage.dart';
+import 'package:gymbroo/pages/admin/training/trainingCreate.dart';
+import 'package:gymbroo/pages/admin/training/trainingDetail.dart';
+import 'package:gymbroo/pages/admin/training/trainingEdit.dart';
 
 class TrainingPage extends StatefulWidget {
   const TrainingPage({super.key});
@@ -85,7 +88,7 @@ class _TrainingPageState extends State<TrainingPage> {
         _navigateToMembershipPage();
         break;
       case 2:
-        _navigateToTrainingPage();
+        // Stay on training page
         break;
       case 3:
         _navigateToTrainerPage();
@@ -102,7 +105,7 @@ class _TrainingPageState extends State<TrainingPage> {
       MaterialPageRoute(builder: (context) => const dashboardAdmin()),
     );
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Navigate to dashboard Page')),
+      SnackBar(content: const Text('Navigate to dashboard Page')),
     );
   }
 
@@ -112,17 +115,15 @@ class _TrainingPageState extends State<TrainingPage> {
       MaterialPageRoute(builder: (context) => const MembershipPage()),
     );
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Navigate to Membership Page')),
+      SnackBar(content: const Text('Navigate to Membership Page')),
     );
   }
 
   void _navigateToTrainingPage() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const TrainingPage()),
-    );
+    // Karena ini adalah halaman Training, tidak perlu navigasi lagi,
+    // hanya tampilkan SnackBar
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Navigate to Training Page')),
+      SnackBar(content: const Text('Stay on Training Page')),
     );
   }
 
@@ -132,7 +133,7 @@ class _TrainingPageState extends State<TrainingPage> {
       MaterialPageRoute(builder: (context) => const TrainerPage()),
     );
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Navigate to Trainer Page')),
+      SnackBar(content: const Text('Navigate to Trainer Page')),
     );
   }
 
@@ -142,17 +143,31 @@ class _TrainingPageState extends State<TrainingPage> {
       MaterialPageRoute(builder: (context) => const memberPage()),
     );
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Navigate to Member Page')),
+      SnackBar(content: const Text('Navigate to Member Page')),
     );
   }
 
+  // Fungsi untuk menavigasi ke halaman CreateTrainingPage
   void _createTraining() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const CreateTrainingPage()),
+    );
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Create new training class')),
+      SnackBar(content: const Text('Create new training class')),
     );
   }
 
+  // Fungsi untuk menavigasi ke halaman EditTrainingPage
   void _editTraining(int index) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditTrainingPage(
+          trainingData: trainingData[index], // Meneruskan data pelatihan yang akan diedit
+        ),
+      ),
+    );
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Edit training: ${trainingData[index]['trainingName']}')),
     );
@@ -201,6 +216,21 @@ class _TrainingPageState extends State<TrainingPage> {
     );
   }
 
+  // Fungsi untuk menavigasi ke halaman detail pelatihan saat nama diklik
+  void _viewTrainingDetail(int index) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => TrainingDetailPage(
+          trainingData: trainingData[index], // Meneruskan data lengkap ke halaman detail
+        ),
+      ),
+    );
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text('Viewing details for: ${trainingData[index]['trainingName']}')),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -223,15 +253,15 @@ class _TrainingPageState extends State<TrainingPage> {
                   bottomRight: Radius.circular(20),
                 ),
               ),
-              child: Row(
+              child: const Row(
                 children: [
                   Icon(
                     Icons.fitness_center,
                     color: Colors.white,
                     size: 28,
                   ),
-                  const SizedBox(width: 12),
-                  const Text(
+                  SizedBox(width: 12),
+                  Text(
                     'Training class',
                     style: TextStyle(
                       color: Colors.white,
@@ -391,13 +421,18 @@ class _TrainingPageState extends State<TrainingPage> {
                                   ),
                                   Expanded(
                                     flex: 3,
-                                    child: Text(
-                                      item['trainingName'],
-                                      style: const TextStyle(
-                                        color: Colors.white,
-                                        fontSize: 14,
+                                    child: GestureDetector( // <-- Wrap with GestureDetector
+                                      onTap: () => _viewTrainingDetail(index), // <-- Call new function
+                                      child: Text(
+                                        item['trainingName'],
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 14,
+                                          decoration: TextDecoration.underline, // Opsional: Beri underline
+                                          decorationColor: Colors.white, // Warna underline
+                                        ),
+                                        textAlign: TextAlign.center,
                                       ),
-                                      textAlign: TextAlign.center,
                                     ),
                                   ),
                                   Expanded(

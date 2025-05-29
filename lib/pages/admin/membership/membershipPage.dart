@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:gymbroo/pages/admin/dashboardPage.dart';
 import 'package:gymbroo/pages/admin/memberPage.dart';
+import 'package:gymbroo/pages/admin/membership/membershipCreate.dart';
+import 'package:gymbroo/pages/admin/membership/membershipEdit.dart';
 import 'package:gymbroo/pages/admin/trainer/trainerPage.dart';
 import 'package:gymbroo/pages/admin/training/trainingPage.dart';
 
@@ -141,12 +143,20 @@ class _MembershipPageState extends State<MembershipPage> {
   }
 
   void _createMembership() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => CreateMembershipPage()),
+    );
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Create new membership')),
     );
   }
 
   void _editMembership(int index) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => EditMembershipPage()),
+    );
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text('Edit membership: ${membershipData[index]['membershipType']}')),
     );

@@ -12,15 +12,15 @@ class memberPage extends StatefulWidget {
 }
 
 class _memberPageState extends State<memberPage> {
-  int _currentIndex = 4; 
+  int _currentIndex = 4;
 
   // Sample training data - replace with actual data from your backend
   final List<Map<String, dynamic>> trainingData = [
     {
-    'no': 1,
-    'nama': 'Rahadya Suset',
-    'email': 'rahadya@example.com',
-    'status': 'aktif'
+      'no': 1,
+      'nama': 'Rahadya Suset',
+      'email': 'rahadya@example.com',
+      'status': 'aktif'
     },
     {
       'no': 2,
@@ -147,60 +147,7 @@ class _memberPageState extends State<memberPage> {
     );
   }
 
-  void _createTraining() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Create new training class')),
-    );
-  }
 
-  void _editTraining(int index) {
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Edit training: ${trainingData[index]['trainingName']}')),
-    );
-  }
-
-  void _deleteTraining(int index) {
-    showDialog(
-      context: context,
-      builder: (BuildContext context) {
-        return AlertDialog(
-          backgroundColor: const Color(0xFF2D2D2D),
-          title: const Text(
-            'Delete Training Class',
-            style: TextStyle(color: Colors.white),
-          ),
-          content: Text(
-            'Are you sure you want to delete ${trainingData[index]['trainingName']}?',
-            style: const TextStyle(color: Colors.white70),
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.of(context).pop(),
-              child: const Text(
-                'Cancel',
-                style: TextStyle(color: Colors.grey),
-              ),
-            ),
-            TextButton(
-              onPressed: () {
-                setState(() {
-                  trainingData.removeAt(index);
-                });
-                Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Training class deleted')),
-                );
-              },
-              child: const Text(
-                'Delete',
-                style: TextStyle(color: Colors.red),
-              ),
-            ),
-          ],
-        );
-      },
-    );
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -224,16 +171,16 @@ class _memberPageState extends State<memberPage> {
                   bottomRight: Radius.circular(20),
                 ),
               ),
-              child: Row(
+              child: const Row( // Changed to const as children are const
                 children: [
                   Icon(
                     Icons.sports_martial_arts,
                     color: Colors.white,
                     size: 28,
                   ),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'Trainer',
+                  SizedBox(width: 12),
+                  Text(
+                    'Member', // Changed title from 'Trainer' to 'Member'
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 24,
@@ -244,31 +191,8 @@ class _memberPageState extends State<memberPage> {
               ),
             ),
 
-            // Create Button
-            Padding(
-              padding: const EdgeInsets.all(24),
-              child: Align(
-                alignment: Alignment.centerLeft,
-                child: ElevatedButton(
-                  onPressed: _createTraining,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFFFD700),
-                    foregroundColor: Colors.black,
-                    padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                  ),
-                  child: const Text(
-                    'Create',
-                    style: TextStyle(
-                      fontWeight: FontWeight.bold,
-                      fontSize: 16,
-                    ),
-                  ),
-                ),
-              ),
-            ),
+            // Tambahkan SizedBox untuk memberikan jarak setelah header
+            const SizedBox(height: 24), // Ini akan memberikan jarak yang sama dengan MembershipPage
 
             // Data Table
             Expanded(
@@ -476,8 +400,8 @@ class _memberPageState extends State<memberPage> {
         width: 56,
         height: 56,
         decoration: BoxDecoration(
-          color: isActive 
-              ? const Color(0xFF00B894) 
+          color: isActive
+              ? const Color(0xFF00B894)
               : const Color(0xFF2D2D2D),
           borderRadius: BorderRadius.circular(16),
         ),
