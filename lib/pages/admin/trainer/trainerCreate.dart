@@ -1,6 +1,7 @@
-// File: lib/pages/admin/trainer/createTrainerPage.dart
-
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class CreateTrainerPage extends StatefulWidget {
   const CreateTrainerPage({super.key});
@@ -10,22 +11,65 @@ class CreateTrainerPage extends StatefulWidget {
 }
 
 class _CreateTrainerPageState extends State<CreateTrainerPage> {
-  final TextEditingController _trainerNameController = TextEditingController(); // Ubah nama controller
-  final TextEditingController _whatsappController = TextEditingController(); // Tambahkan controller
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final TextEditingController _trainerNameController = TextEditingController();
+  final TextEditingController _whatsappController = TextEditingController();
+  bool _isLoading = false;
+  final String _baseUrl = 'http://localhost:3000/API'; // Your backend URL
 
-  // Fungsi untuk menangani pembuatan trainer
-  void _createTrainer() {
-    print('Creating New Trainer:');
-    print('Trainer Name: ${_trainerNameController.text}');
-    print('Whatsapp: ${_whatsappController.text}');
+  // Function to handle creating a trainer
+  void _createTrainer() async {
+    if (_formKey.currentState!.validate()) {
+      setState(() {
+        _isLoading = true;
+      });
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Trainer created successfully!')),
-    );
-    Navigator.pop(context); // Kembali ke halaman sebelumnya
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final token = prefs.getString('token');
+
+        if (token == null) {
+          _showSnackBar('Authentication token not found. Please log in again.', Colors.red);
+          return;
+        }
+
+        final response = await http.post(
+          Uri.parse('$_baseUrl/admin/trainers'),
+          headers: <String, String>{
+            'Content-Type': 'application/json; charset=UTF-8',
+            'Authorization': 'Bearer $token',
+          },
+          body: jsonEncode(<String, String>{
+            'username': _trainerNameController.text,
+            'whatsapp': _whatsappController.text,
+          }),
+        );
+
+        if (response.statusCode == 200) {
+          _showSnackBar('Trainer created successfully!', Colors.green);
+          Navigator.pop(context, true);
+        } else {
+          final responseBody = json.decode(response.body);
+          _showSnackBar(responseBody['message'] ?? 'Failed to create trainer.', Colors.red);
+        }
+      } catch (e) {
+        _showSnackBar('An error occurred: $e', Colors.red);
+        print('Error creating trainer: $e');
+      } finally {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
   }
 
-  // Fungsi untuk navigasi kembali ke halaman sebelumnya
+  void _showSnackBar(String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: color),
+    );
+  }
+
+  // Function to navigate back to previous page
   void _navigateBack() {
     Navigator.pop(context);
   }
@@ -37,7 +81,7 @@ class _CreateTrainerPageState extends State<CreateTrainerPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // Header dengan tombol kembali dan judul
+            // Header with back button and title
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Row(
@@ -64,7 +108,7 @@ class _CreateTrainerPageState extends State<CreateTrainerPage> {
                   ),
                   const SizedBox(width: 12),
                   const Text(
-                    'Create Trainer', // Judul halaman
+                    'Create Trainer',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 20,
@@ -75,79 +119,100 @@ class _CreateTrainerPageState extends State<CreateTrainerPage> {
               ),
             ),
 
-            // Konten form
+            // Form content
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Column(
-                  children: [
-                    const SizedBox(height: 24),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 24),
 
-                    // Input Nama Trainer
-                    Container(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF474242),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: TextField(
-                        controller: _trainerNameController,
-                        style: const TextStyle(color: Colors.white),
-                        decoration: InputDecoration(
-                          hintText: 'Trainer Name',
-                          hintStyle: TextStyle(color: Colors.grey[400]),
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.all(16),
+                      // Trainer Name Input
+                      Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF474242),
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // Input Whatsapp
-                    Container(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF474242),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: TextField(
-                        controller: _whatsappController,
-                        style: const TextStyle(color: Colors.white),
-                        keyboardType: TextInputType.phone, // Tipe keyboard untuk nomor telepon
-                        decoration: InputDecoration(
-                          hintText: 'Whatsapp (e.g., 081234567890)',
-                          hintStyle: TextStyle(color: Colors.grey[400]),
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.all(16),
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 32),
-
-                    // Tombol Create
-                    SizedBox(
-                      width: double.infinity,
-                      height: 56,
-                      child: ElevatedButton(
-                        onPressed: _createTrainer,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFE6E886),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                        child: TextFormField(
+                          controller: _trainerNameController,
+                          style: const TextStyle(color: Colors.white),
+                          decoration: InputDecoration(
+                            hintText: 'Trainer Name',
+                            hintStyle: TextStyle(color: Colors.grey[400]),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.all(16),
                           ),
-                          elevation: 0,
-                        ),
-                        child: const Text(
-                          'Create Trainer',
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Trainer Name is required.';
+                            }
+                            // Simplified validation: only check length
+                            if (value.length < 1 || value.length > 30) {
+                              return 'Username must be between 1 and 30 characters.';
+                            }
+                            return null;
+                          },
                         ),
                       ),
-                    ),
-                  ],
+
+                      const SizedBox(height: 16),
+
+                      // Whatsapp Input
+                      Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF474242),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: TextFormField(
+                          controller: _whatsappController,
+                          style: const TextStyle(color: Colors.white),
+                          keyboardType: TextInputType.phone,
+                          decoration: InputDecoration(
+                            hintText: 'Whatsapp (e.g., 081234567890)',
+                            hintStyle: TextStyle(color: Colors.grey[400]),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.all(16),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Whatsapp is required.';
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+
+                      const SizedBox(height: 32),
+
+                      // Create Button
+                      SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : _createTrainer,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFE6E886),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: _isLoading
+                              ? const CircularProgressIndicator(color: Colors.black)
+                              : const Text(
+                                  'Create Trainer',
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

@@ -1,9 +1,10 @@
-// File: lib/pages/admin/trainer/editTrainerPage.dart
-
 import 'package:flutter/material.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class EditTrainerPage extends StatefulWidget {
-  final Map<String, dynamic> trainerData; // Menggunakan trainerData
+  final Map<String, dynamic> trainerData;
 
   const EditTrainerPage({super.key, required this.trainerData});
 
@@ -12,30 +13,73 @@ class EditTrainerPage extends StatefulWidget {
 }
 
 class _EditTrainerPageState extends State<EditTrainerPage> {
-  final TextEditingController _trainerNameController = TextEditingController(); // Ubah nama controller agar lebih jelas
-  final TextEditingController _whatsappController = TextEditingController(); // Tambahkan controller untuk whatsapp
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final TextEditingController _trainerNameController = TextEditingController();
+  final TextEditingController _whatsappController = TextEditingController();
+  bool _isLoading = false;
+  final String _baseUrl = 'http://localhost:3000/API'; // Your backend URL
 
   @override
   void initState() {
     super.initState();
-    // Inisialisasi kontroler dengan data trainer yang diterima
-    _trainerNameController.text = widget.trainerData['nama'] ?? ''; // Menggunakan kunci 'nama'
-    _whatsappController.text = widget.trainerData['whatsapp'] ?? ''; // Inisialisasi whatsapp
+    // Initialize controllers with received trainer data
+    _trainerNameController.text = widget.trainerData['username'] ?? ''; // Use 'username' key from backend
+    _whatsappController.text = widget.trainerData['whatsapp'] ?? '';
   }
 
-  // Fungsi untuk menangani pembaruan trainer
-  void _updateTrainer() {
-    print('Updating Trainer:');
-    print('New Trainer Name: ${_trainerNameController.text}');
-    print('New Whatsapp: ${_whatsappController.text}');
+  // Function to handle updating a trainer
+  void _updateTrainer() async {
+    if (_formKey.currentState!.validate()) {
+      setState(() {
+        _isLoading = true;
+      });
 
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final token = prefs.getString('token');
+
+        if (token == null) {
+          _showSnackBar('Authentication token not found. Please log in again.', Colors.red);
+          return;
+        }
+
+        final response = await http.patch(
+          Uri.parse('$_baseUrl/admin/trainers/${widget.trainerData['id']}'), // Use trainer ID
+          headers: <String, String>{
+            'Content-Type': 'application/json; charset=UTF-8',
+            'Authorization': 'Bearer $token',
+          },
+          body: jsonEncode(<String, String>{
+            'username': _trainerNameController.text,
+            'whatsapp': _whatsappController.text,
+          }),
+        );
+
+        if (response.statusCode == 200) { // Backend returns 200 for success
+          _showSnackBar('Trainer updated successfully!', Colors.green);
+          Navigator.pop(context, true); // Return true to previous page to refresh
+        } else {
+          final responseBody = json.decode(response.body);
+          _showSnackBar(responseBody['message'] ?? 'Failed to update trainer.', Colors.red);
+        }
+      } catch (e) {
+        _showSnackBar('An error occurred: $e', Colors.red);
+        print('Error updating trainer: $e');
+      } finally {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _showSnackBar(String message, Color color) {
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Trainer updated successfully!')),
+      SnackBar(content: Text(message), backgroundColor: color),
     );
-    Navigator.pop(context); // Kembali ke halaman sebelumnya
   }
 
-  // Fungsi untuk navigasi kembali ke halaman sebelumnya
+  // Function to navigate back to previous page
   void _navigateBack() {
     Navigator.pop(context);
   }
@@ -47,7 +91,7 @@ class _EditTrainerPageState extends State<EditTrainerPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // Header dengan tombol kembali dan judul
+            // Header with back button and title
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Row(
@@ -85,79 +129,100 @@ class _EditTrainerPageState extends State<EditTrainerPage> {
               ),
             ),
 
-            // Konten form
+            // Form content
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Column(
-                  children: [
-                    const SizedBox(height: 24),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 24),
 
-                    // Input Nama Trainer
-                    Container(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF474242),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: TextField(
-                        controller: _trainerNameController,
-                        style: const TextStyle(color: Colors.white),
-                        decoration: InputDecoration(
-                          hintText: 'Trainer Name',
-                          hintStyle: TextStyle(color: Colors.grey[400]),
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.all(16),
+                      // Trainer Name Input
+                      Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF474242),
+                          borderRadius: BorderRadius.circular(12),
                         ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // Input Whatsapp
-                    Container(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF474242),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: TextField(
-                        controller: _whatsappController,
-                        style: const TextStyle(color: Colors.white),
-                        keyboardType: TextInputType.phone, // Tipe keyboard untuk nomor telepon
-                        decoration: InputDecoration(
-                          hintText: 'Whatsapp (e.g., 081234567890)',
-                          hintStyle: TextStyle(color: Colors.grey[400]),
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.all(16),
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 32),
-
-                    // Tombol Update
-                    SizedBox(
-                      width: double.infinity,
-                      height: 56,
-                      child: ElevatedButton(
-                        onPressed: _updateTrainer,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFE6E886),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                        child: TextFormField(
+                          controller: _trainerNameController,
+                          style: const TextStyle(color: Colors.white),
+                          decoration: InputDecoration(
+                            hintText: 'Trainer Name',
+                            hintStyle: TextStyle(color: Colors.grey[400]),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.all(16),
                           ),
-                          elevation: 0,
-                        ),
-                        child: const Text(
-                          'Update Trainer',
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Trainer Name is required.';
+                            }
+                            // Simplified validation: only check length
+                            if (value.length < 1 || value.length > 30) {
+                              return 'Username must be between 1 and 30 characters.';
+                            }
+                            return null;
+                          },
                         ),
                       ),
-                    ),
-                  ],
+
+                      const SizedBox(height: 16),
+
+                      // Whatsapp Input
+                      Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF474242),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: TextFormField(
+                          controller: _whatsappController,
+                          style: const TextStyle(color: Colors.white),
+                          keyboardType: TextInputType.phone,
+                          decoration: InputDecoration(
+                            hintText: 'Whatsapp (e.g., 081234567890)',
+                            hintStyle: TextStyle(color: Colors.grey[400]),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.all(16),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Whatsapp is required.';
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+
+                      const SizedBox(height: 32),
+
+                      // Update Button
+                      SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : _updateTrainer,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFE6E886),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: _isLoading
+                              ? const CircularProgressIndicator(color: Colors.black)
+                              : const Text(
+                                  'Update Trainer',
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

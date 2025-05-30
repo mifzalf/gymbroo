@@ -6,6 +6,9 @@ import 'package:gymbroo/pages/admin/trainer/trainerPage.dart';
 import 'package:gymbroo/pages/admin/training/trainingCreate.dart';
 import 'package:gymbroo/pages/admin/training/trainingDetail.dart';
 import 'package:gymbroo/pages/admin/training/trainingEdit.dart';
+import 'package:http/http.dart' as http; // Import http
+import 'dart:convert'; // Import json
+import 'package:shared_preferences/shared_preferences.dart'; // Import SharedPreferences
 
 class TrainingPage extends StatefulWidget {
   const TrainingPage({super.key});
@@ -17,163 +20,65 @@ class TrainingPage extends StatefulWidget {
 class _TrainingPageState extends State<TrainingPage> {
   int _currentIndex = 2; // Set to 2 since this is the training page
 
-  // Sample training data - replace with actual data from your backend
-  final List<Map<String, dynamic>> trainingData = [
-    {
-      'no': 1,
-      'trainingName': 'Morning Cardio',
-      'price': 'Rp 50.000',
-      'time': '07:00 - 08:00'
-    },
-    {
-      'no': 2,
-      'trainingName': 'Weight Training',
-      'price': 'Rp 75.000',
-      'time': '09:00 - 10:30'
-    },
-    {
-      'no': 3,
-      'trainingName': 'Yoga Class',
-      'price': 'Rp 40.000',
-      'time': '18:00 - 19:00'
-    },
-    {
-      'no': 4,
-      'trainingName': 'HIIT Training',
-      'price': 'Rp 60.000',
-      'time': '19:30 - 20:30'
-    },
-    {
-      'no': 5,
-      'trainingName': 'Pilates',
-      'price': 'Rp 55.000',
-      'time': '10:00 - 11:00'
-    },
-    {
-      'no': 6,
-      'trainingName': 'Boxing Class',
-      'price': 'Rp 80.000',
-      'time': '20:00 - 21:00'
-    },
-    {
-      'no': 7,
-      'trainingName': 'Crossfit',
-      'price': 'Rp 90.000',
-      'time': '06:00 - 07:00'
-    },
-    {
-      'no': 8,
-      'trainingName': 'Zumba Dance',
-      'price': 'Rp 45.000',
-      'time': '17:00 - 18:00'
-    },
-    {
-      'no': 9,
-      'trainingName': 'Personal Training',
-      'price': 'Rp 150.000',
-      'time': 'Flexible'
-    },
-  ];
+  List<dynamic> trainingData = []; // Ubah menjadi List<dynamic> untuk menampung data dari API
+  bool _isLoading = true; // State untuk loading data
+  final String _baseUrl = 'http://localhost:3000/API'; // Your backend URL
 
-  void _navigateToPage(int index) {
+  @override
+  void initState() {
+    super.initState();
+    _fetchTrainings(); // Fetch data when the page initializes
+  }
+
+  // Function to fetch trainings list from the backend
+  Future<void> _fetchTrainings() async {
     setState(() {
-      _currentIndex = index;
+      _isLoading = true;
     });
 
-    switch (index) {
-      case 0:
-        _navigateToDashboardpPage();
-        break;
-      case 1:
-        _navigateToMembershipPage();
-        break;
-      case 2:
-        // Stay on training page
-        break;
-      case 3:
-        _navigateToTrainerPage();
-        break;
-      case 4:
-        _navigateToMemberPage();
-        break;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      if (token == null) {
+        _showSnackBar('Authentication token not found. Please log in again.', Colors.red);
+        // Optionally, navigate to login page:
+        // Navigator.pushReplacementNamed(context, '/login');
+        return;
+      }
+
+      final response = await http.get(
+        Uri.parse('$_baseUrl/admin/trainings'),
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> fetchedData = json.decode(response.body);
+        setState(() {
+          trainingData = fetchedData;
+        });
+      } else if (response.statusCode == 401 || response.statusCode == 403) {
+        final responseBody = json.decode(response.body);
+        _showSnackBar(responseBody['message'] ?? 'Unauthorized or forbidden.', Colors.red);
+      } else {
+        final responseBody = json.decode(response.body);
+        _showSnackBar(responseBody['message'] ?? 'Failed to load trainings.', Colors.red);
+      }
+    } catch (e) {
+      _showSnackBar('Error fetching trainings: $e', Colors.red);
+      print('Error fetching trainings: $e');
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
-  
-  void _navigateToDashboardpPage() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const dashboardAdmin()),
-    );
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: const Text('Navigate to dashboard Page')),
-    );
-  }
 
-  void _navigateToMembershipPage() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const MembershipPage()),
-    );
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: const Text('Navigate to Membership Page')),
-    );
-  }
-
-  void _navigateToTrainingPage() {
-    // Karena ini adalah halaman Training, tidak perlu navigasi lagi,
-    // hanya tampilkan SnackBar
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: const Text('Stay on Training Page')),
-    );
-  }
-
-  void _navigateToTrainerPage() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const TrainerPage()),
-    );
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: const Text('Navigate to Trainer Page')),
-    );
-  }
-
-  void _navigateToMemberPage() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const memberPage()),
-    );
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: const Text('Navigate to Member Page')),
-    );
-  }
-
-  // Fungsi untuk menavigasi ke halaman CreateTrainingPage
-  void _createTraining() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const CreateTrainingPage()),
-    );
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: const Text('Create new training class')),
-    );
-  }
-
-  // Fungsi untuk menavigasi ke halaman EditTrainingPage
-  void _editTraining(int index) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => EditTrainingPage(
-          trainingData: trainingData[index], // Meneruskan data pelatihan yang akan diedit
-        ),
-      ),
-    );
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Edit training: ${trainingData[index]['trainingName']}')),
-    );
-  }
-
-  void _deleteTraining(int index) {
+  // Function to delete a training
+  Future<void> _deleteTraining(int trainingId) async { // Hanya menerima trainingId
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -183,9 +88,9 @@ class _TrainingPageState extends State<TrainingPage> {
             'Delete Training Class',
             style: TextStyle(color: Colors.white),
           ),
-          content: Text(
-            'Are you sure you want to delete ${trainingData[index]['trainingName']}?',
-            style: const TextStyle(color: Colors.white70),
+          content: const Text(
+            'Are you sure you want to delete this training class?',
+            style: TextStyle(color: Colors.white70),
           ),
           actions: [
             TextButton(
@@ -196,14 +101,47 @@ class _TrainingPageState extends State<TrainingPage> {
               ),
             ),
             TextButton(
-              onPressed: () {
+              onPressed: () async {
+                Navigator.of(context).pop(); // Close the dialog
                 setState(() {
-                  trainingData.removeAt(index);
+                  _isLoading = true; // Show loading while deleting
                 });
-                Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Training class deleted')),
-                );
+
+                try {
+                  final prefs = await SharedPreferences.getInstance();
+                  final token = prefs.getString('token');
+
+                  if (token == null) {
+                    _showSnackBar('Authentication token not found. Please log in again.', Colors.red);
+                    return;
+                  }
+
+                  final response = await http.delete(
+                    Uri.parse('$_baseUrl/admin/trainings/$trainingId'),
+                    headers: {
+                      'Authorization': 'Bearer $token',
+                    },
+                  );
+
+                  if (response.statusCode == 200) {
+                    _showSnackBar('Training class deleted successfully', Colors.green);
+                    // Refresh the training list after deletion
+                    _fetchTrainings();
+                  } else if (response.statusCode == 401 || response.statusCode == 403) {
+                    final responseBody = json.decode(response.body);
+                    _showSnackBar(responseBody['message'] ?? 'Unauthorized or forbidden.', Colors.red);
+                  } else {
+                    final responseBody = json.decode(response.body);
+                    _showSnackBar(responseBody['message'] ?? 'Failed to delete training class.', Colors.red);
+                  }
+                } catch (e) {
+                  _showSnackBar('Error deleting training class: $e', Colors.red);
+                  print('Error deleting training class: $e');
+                } finally {
+                  setState(() {
+                    _isLoading = false;
+                  });
+                }
               },
               child: const Text(
                 'Delete',
@@ -216,19 +154,85 @@ class _TrainingPageState extends State<TrainingPage> {
     );
   }
 
-  // Fungsi untuk menavigasi ke halaman detail pelatihan saat nama diklik
-  void _viewTrainingDetail(int index) {
+  void _showSnackBar(String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: color),
+    );
+  }
+
+  void _navigateToPage(int index) {
+    if (_currentIndex == index) return;
+
+    setState(() {
+      _currentIndex = index;
+    });
+
+    switch (index) {
+      case 0:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const dashboardAdmin()),
+        );
+        break;
+      case 1:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const MembershipPage()),
+        );
+        break;
+      case 2:
+        // Stay on training page
+        break;
+      case 3:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const TrainerPage()),
+        );
+        break;
+      case 4:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const memberPage()),
+        );
+        break;
+    }
+  }
+
+  void _createTraining() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const CreateTrainingPage()),
+    );
+    if (result == true) { // If returned with success indication
+      _fetchTrainings(); // Refresh data
+    }
+  }
+
+  void _editTraining(Map<String, dynamic> training) async { // Menerima Map<String, dynamic>
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => EditTrainingPage(
+          trainingData: training, // Meneruskan data pelatihan lengkap
+        ),
+      ),
+    );
+    if (result == true) { // If returned with success indication
+      _fetchTrainings(); // Refresh data
+    }
+  }
+
+  // Function to navigate to training detail page when name is clicked
+  void _viewTrainingDetail(Map<String, dynamic> training) { // Menerima Map<String, dynamic>
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => TrainingDetailPage(
-          trainingData: trainingData[index], // Meneruskan data lengkap ke halaman detail
+          trainingData: training, // Meneruskan data lengkap ke halaman detail
         ),
       ),
     );
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Viewing details for: ${trainingData[index]['trainingName']}')),
-    );
+    _showSnackBar('Viewing details for: ${training['title']}', Colors.blue); // Menggunakan 'title' dari backend
   }
 
   @override
@@ -262,7 +266,7 @@ class _TrainingPageState extends State<TrainingPage> {
                   ),
                   SizedBox(width: 12),
                   Text(
-                    'Training class',
+                    'Training Class',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 24,
@@ -308,112 +312,33 @@ class _TrainingPageState extends State<TrainingPage> {
                     color: const Color(0xFF1A1A1A),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Column(
-                    children: [
-                      // Table Header
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: const BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [Color(0xFF007662), Color(0xFF00DCB7)],
-                            begin: Alignment.centerLeft,
-                            end: Alignment.centerRight,
-                          ),
-                          borderRadius: BorderRadius.only(
-                            topLeft: Radius.circular(12),
-                            topRight: Radius.circular(12),
-                          ),
-                        ),
-                        child: const Row(
+                  child: _isLoading
+                      ? const Center(child: CircularProgressIndicator(color: Color(0xFFE8D864)))
+                      : Column(
                           children: [
-                            Expanded(
-                              flex: 1,
-                              child: Text(
-                                'No',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                            Expanded(
-                              flex: 3,
-                              child: Text(
-                                'Training name',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                            Expanded(
-                              flex: 2,
-                              child: Text(
-                                'Price',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                            Expanded(
-                              flex: 2,
-                              child: Text(
-                                'Time',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                            Expanded(
-                              flex: 2,
-                              child: Text(
-                                'Action',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      // Table Data
-                      Expanded(
-                        child: ListView.builder(
-                          itemCount: trainingData.length,
-                          itemBuilder: (context, index) {
-                            final item = trainingData[index];
-                            return Container(
+                            // Table Header
+                            Container(
                               padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                border: Border(
-                                  bottom: BorderSide(
-                                    color: Colors.grey.withOpacity(0.2),
-                                    width: 1,
-                                  ),
+                              decoration: const BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [Color(0xFF007662), Color(0xFF00DCB7)],
+                                  begin: Alignment.centerLeft,
+                                  end: Alignment.centerRight,
+                                ),
+                                borderRadius: BorderRadius.only(
+                                  topLeft: Radius.circular(12),
+                                  topRight: Radius.circular(12),
                                 ),
                               ),
-                              child: Row(
+                              child: const Row(
                                 children: [
                                   Expanded(
                                     flex: 1,
                                     child: Text(
-                                      item['no'].toString(),
-                                      style: const TextStyle(
+                                      'No',
+                                      style: TextStyle(
                                         color: Colors.white,
+                                        fontWeight: FontWeight.bold,
                                         fontSize: 14,
                                       ),
                                       textAlign: TextAlign.center,
@@ -421,26 +346,11 @@ class _TrainingPageState extends State<TrainingPage> {
                                   ),
                                   Expanded(
                                     flex: 3,
-                                    child: GestureDetector( // <-- Wrap with GestureDetector
-                                      onTap: () => _viewTrainingDetail(index), // <-- Call new function
-                                      child: Text(
-                                        item['trainingName'],
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 14,
-                                          decoration: TextDecoration.underline, // Opsional: Beri underline
-                                          decorationColor: Colors.white, // Warna underline
-                                        ),
-                                        textAlign: TextAlign.center,
-                                      ),
-                                    ),
-                                  ),
-                                  Expanded(
-                                    flex: 2,
                                     child: Text(
-                                      item['price'],
-                                      style: const TextStyle(
+                                      'Training Name',
+                                      style: TextStyle(
                                         color: Colors.white,
+                                        fontWeight: FontWeight.bold,
                                         fontSize: 14,
                                       ),
                                       textAlign: TextAlign.center,
@@ -449,9 +359,10 @@ class _TrainingPageState extends State<TrainingPage> {
                                   Expanded(
                                     flex: 2,
                                     child: Text(
-                                      item['time'],
-                                      style: const TextStyle(
+                                      'Price',
+                                      style: TextStyle(
                                         color: Colors.white,
+                                        fontWeight: FontWeight.bold,
                                         fontSize: 14,
                                       ),
                                       textAlign: TextAlign.center,
@@ -459,43 +370,146 @@ class _TrainingPageState extends State<TrainingPage> {
                                   ),
                                   Expanded(
                                     flex: 2,
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        GestureDetector(
-                                          onTap: () => _editTraining(index),
-                                          child: Container(
-                                            padding: const EdgeInsets.all(4),
-                                            child: const Icon(
-                                              Icons.edit,
-                                              color: Color(0xFF00DCB7),
-                                              size: 18,
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        GestureDetector(
-                                          onTap: () => _deleteTraining(index),
-                                          child: Container(
-                                            padding: const EdgeInsets.all(4),
-                                            child: const Icon(
-                                              Icons.delete,
-                                              color: Colors.red,
-                                              size: 18,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
+                                    child: Text(
+                                      'Time',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                  Expanded(
+                                    flex: 2,
+                                    child: Text(
+                                      'Action',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                      textAlign: TextAlign.center,
                                     ),
                                   ),
                                 ],
                               ),
-                            );
-                          },
+                            ),
+
+                            // Table Data
+                            Expanded(
+                              child: trainingData.isEmpty
+                                  ? const Center(
+                                      child: Text(
+                                        'No training data.',
+                                        style: TextStyle(color: Colors.white70),
+                                      ),
+                                    )
+                                  : ListView.builder(
+                                      itemCount: trainingData.length,
+                                      itemBuilder: (context, index) {
+                                        final item = trainingData[index];
+                                        return Container(
+                                          padding: const EdgeInsets.all(16),
+                                          decoration: BoxDecoration(
+                                            border: Border(
+                                              bottom: BorderSide(
+                                                color: Colors.grey.withOpacity(0.2),
+                                                width: 1,
+                                              ),
+                                            ),
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              Expanded(
+                                                flex: 1,
+                                                child: Text(
+                                                  (index + 1).toString(),
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 14,
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                              ),
+                                              Expanded(
+                                                flex: 3,
+                                                child: GestureDetector(
+                                                  onTap: () => _viewTrainingDetail(item), // Pass the whole item
+                                                  child: Text(
+                                                    item['title'] ?? '-', // Using 'title' from backend
+                                                    style: const TextStyle(
+                                                      color: Colors.white,
+                                                      fontSize: 14,
+                                                      decoration: TextDecoration.underline,
+                                                      decorationColor: Colors.white,
+                                                    ),
+                                                    textAlign: TextAlign.center,
+                                                  ),
+                                                ),
+                                              ),
+                                              Expanded(
+                                                flex: 2,
+                                                child: Text(
+                                                  'Rp ${item['price']?.toString() ?? '-'}', // Using 'price' from backend
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 14,
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                              ),
+                                              Expanded(
+                                                flex: 2,
+                                                child: Text(
+                                                  item['time_start']?.substring(0, 5) ?? '-', // Using 'time_start' from backend
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 14,
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                              ),
+                                              Expanded(
+                                                flex: 2,
+                                                child: Row(
+                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                  mainAxisSize: MainAxisSize.min, // Fix RenderFlex overflow
+                                                  children: [
+                                                    GestureDetector(
+                                                      onTap: () => _editTraining(item), // Pass the whole item
+                                                      child: Container(
+                                                        padding: const EdgeInsets.all(4),
+                                                        child: const Icon(
+                                                          Icons.edit,
+                                                          color: Color(0xFF00DCB7),
+                                                          size: 18,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    const SizedBox(width: 8),
+                                                    GestureDetector(
+                                                      onTap: () => _deleteTraining(item['id']), // Pass training ID
+                                                      child: Container(
+                                                        padding: const EdgeInsets.all(4),
+                                                        child: const Icon(
+                                                          Icons.delete,
+                                                          color: Colors.red,
+                                                          size: 18,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      },
+                                    ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
-                  ),
                 ),
               ),
             ),
@@ -553,8 +567,8 @@ class _TrainingPageState extends State<TrainingPage> {
         width: 56,
         height: 56,
         decoration: BoxDecoration(
-          color: isActive 
-              ? const Color(0xFF00B894) 
+          color: isActive
+              ? const Color(0xFF00B894)
               : const Color(0xFF2D2D2D),
           borderRadius: BorderRadius.circular(16),
         ),

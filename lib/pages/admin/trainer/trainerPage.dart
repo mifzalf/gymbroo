@@ -5,7 +5,9 @@ import 'package:gymbroo/pages/admin/membership/membershipPage.dart';
 import 'package:gymbroo/pages/admin/trainer/TrainerEdit.dart';
 import 'package:gymbroo/pages/admin/trainer/trainerCreate.dart';
 import 'package:gymbroo/pages/admin/training/trainingPage.dart';
-
+import 'package:http/http.dart' as http; // Import http
+import 'dart:convert'; // Import json
+import 'package:shared_preferences/shared_preferences.dart'; // Import SharedPreferences
 
 class TrainerPage extends StatefulWidget {
   const TrainerPage({super.key});
@@ -17,184 +19,65 @@ class TrainerPage extends StatefulWidget {
 class _TrainerPageState extends State<TrainerPage> {
   int _currentIndex = 3; 
 
-  // Mengubah nama variabel dari trainingData menjadi trainerData
-  final List<Map<String, dynamic>> trainerData = [
-    {
-      'no': 1,
-      'nama': 'Morning Cardio',
-      'whatsapp': '081234567801',
-      'description': 'Pelatih ahli dalam sesi kardio pagi.',
-      'duration': 'Full-time',
-      'time': '06.00' // Contoh waktu mulai
-    },
-    {
-      'no': 2,
-      'nama': 'Weight Training',
-      'whatsapp': '081234567802',
-      'description': 'Spesialis dalam pelatihan beban dan pembentukan otot.',
-      'duration': 'Part-time',
-      'time': '08.30'
-    },
-    {
-      'no': 3,
-      'nama': 'Yoga Class',
-      'whatsapp': '081234567803',
-      'description': 'Instruktur yoga bersertifikat dengan pengalaman 5 tahun.',
-      'duration': 'Part-time',
-      'time': '10.00'
-    },
-    {
-      'no': 4,
-      'nama': 'HIIT Training',
-      'whatsapp': '081234567804',
-      'description': 'Pelatih dengan fokus pada intensitas tinggi interval training.',
-      'duration': 'Full-time',
-      'time': '14.00'
-    },
-    {
-      'no': 5,
-      'nama': 'Pilates',
-      'whatsapp': '081234567805',
-      'description': 'Ahli dalam Pilates untuk kekuatan inti dan fleksibilitas.',
-      'duration': 'Part-time',
-      'time': '17.00'
-    },
-    {
-      'no': 6,
-      'nama': 'Boxing Class',
-      'whatsapp': '081234567806',
-      'description': 'Mantan petinju profesional, pelatih kelas tinju.',
-      'duration': 'Full-time',
-      'time': '19.00'
-    },
-    {
-      'no': 7,
-      'nama': 'Crossfit',
-      'whatsapp': '081234567807',
-      'description': 'Pelatih CrossFit Level 1 bersertifikat.',
-      'duration': 'Full-time',
-      'time': '20.30'
-    },
-    {
-      'no': 8,
-      'nama': 'Zumba Dance',
-      'whatsapp': '081234567808',
-      'description': 'Instruktur Zumba yang energik dan menyenangkan.',
-      'duration': 'Part-time',
-      'time': '11.00'
-    },
-    {
-      'no': 9,
-      'nama': 'Personal Training',
-      'whatsapp': '081234567809',
-      'description': 'Pelatih pribadi yang menyediakan program kustom.',
-      'duration': 'Full-time',
-      'time': '09.00'
-    },
-  ];
+  List<dynamic> trainerData = []; // Mengubah menjadi List<dynamic> untuk menampung data dari API
+  bool _isLoading = true; // State untuk loading data
+  final String _baseUrl = 'http://localhost:3000/API'; // Your backend URL
 
+  @override
+  void initState() {
+    super.initState();
+    _fetchTrainers(); // Fetch data when the page initializes
+  }
 
-  void _navigateToPage(int index) {
+  // Function to fetch trainers list from the backend
+  Future<void> _fetchTrainers() async {
     setState(() {
-      _currentIndex = index;
+      _isLoading = true;
     });
 
-    switch (index) {
-      case 0:
-        _navigateToDashboardpPage();
-        break;
-      case 1:
-        _navigateToMembershipPage();
-        break;
-      case 2:
-        _navigateToTrainingPage();
-        break;
-      case 3:
-        _navigateToTrainerPage();
-        break;
-      case 4:
-        _navigateToMemberPage();
-        break;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      if (token == null) {
+        _showSnackBar('Authentication token not found. Please log in again.', Colors.red);
+        // Optionally, navigate to login page:
+        // Navigator.pushReplacementNamed(context, '/login');
+        return;
+      }
+
+      final response = await http.get(
+        Uri.parse('$_baseUrl/admin/trainers'),
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = json.decode(response.body);
+        setState(() {
+          trainerData = responseData['data']; // Mengambil data dari key 'data'
+        });
+      } else if (response.statusCode == 401 || response.statusCode == 403) {
+        final responseBody = json.decode(response.body);
+        _showSnackBar(responseBody['message'] ?? 'Unauthorized or forbidden.', Colors.red);
+      } else {
+        final responseBody = json.decode(response.body);
+        _showSnackBar(responseBody['message'] ?? 'Failed to load trainers.', Colors.red);
+      }
+    } catch (e) {
+      _showSnackBar('Error fetching trainers: $e', Colors.red);
+      print('Error fetching trainers: $e');
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
-  
-  void _navigateToDashboardpPage() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const dashboardAdmin()),
-    );
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Navigate to dashboard Page')),
-    );
-  }
 
-  void _navigateToMembershipPage() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const MembershipPage()),
-    );
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Navigate to Membership Page')),
-    );
-  }
-
-  void _navigateToTrainingPage() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const TrainingPage()),
-    );
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Navigate to Training Page')),
-    );
-  }
-
-  void _navigateToTrainerPage() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const TrainerPage()),
-    );
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Navigate to Trainer Page')),
-    );
-  }
-
-  void _navigateToMemberPage() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const memberPage()),
-    );
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Navigate to Member Page')),
-    );
-  }
-
-  void _createTrainer() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const CreateTrainerPage()),
-    );
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Navigate to Create Trainer Page')),
-    );
-  }
-
-  // Memperbaiki pemanggilan parameter dan menggunakan trainerData
-  void _editTrainer(int index) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => EditTrainerPage(
-          trainerData: trainerData[index], // Meneruskan data dengan nama parameter yang benar
-        ),
-      ),
-    );
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Navigate to Edit Trainer: ${trainerData[index]['nama']}')),
-    );
-  }
-
-  // Mengubah nama fungsi dan referensi data menjadi trainerData
-  void _deleteTrainer(int index) { 
+  // Function to delete a trainer
+  Future<void> _deleteTrainer(int trainerId) async { // Definisi fungsi diubah, hanya menerima trainerId
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -205,7 +88,7 @@ class _TrainerPageState extends State<TrainerPage> {
             style: TextStyle(color: Colors.white),
           ),
           content: Text(
-            'Are you sure you want to delete ${trainerData[index]['nama']}?',
+            'Are you sure you want to delete this trainer?', // Pesan yang lebih umum karena nama tidak langsung tersedia
             style: const TextStyle(color: Colors.white70),
           ),
           actions: [
@@ -217,14 +100,47 @@ class _TrainerPageState extends State<TrainerPage> {
               ),
             ),
             TextButton(
-              onPressed: () {
+              onPressed: () async {
+                Navigator.of(context).pop(); // Close the dialog
                 setState(() {
-                  trainerData.removeAt(index); // Menggunakan trainerData
+                  _isLoading = true; // Show loading while deleting
                 });
-                Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Trainer deleted')),
-                );
+
+                try {
+                  final prefs = await SharedPreferences.getInstance();
+                  final token = prefs.getString('token');
+
+                  if (token == null) {
+                    _showSnackBar('Authentication token not found. Please log in again.', Colors.red);
+                    return;
+                  }
+
+                  final response = await http.delete(
+                    Uri.parse('$_baseUrl/admin/trainers/$trainerId'),
+                    headers: {
+                      'Authorization': 'Bearer $token',
+                    },
+                  );
+
+                  if (response.statusCode == 200) {
+                    _showSnackBar('Trainer deleted successfully', Colors.green);
+                    // Refresh the trainer list after deletion
+                    _fetchTrainers();
+                  } else if (response.statusCode == 401 || response.statusCode == 403) {
+                    final responseBody = json.decode(response.body);
+                    _showSnackBar(responseBody['message'] ?? 'Unauthorized or forbidden.', Colors.red);
+                  } else {
+                    final responseBody = json.decode(response.body);
+                    _showSnackBar(responseBody['message'] ?? 'Failed to delete trainer.', Colors.red);
+                  }
+                } catch (e) {
+                  _showSnackBar('Error deleting trainer: $e', Colors.red);
+                  print('Error deleting trainer: $e');
+                } finally {
+                  setState(() {
+                    _isLoading = false;
+                  });
+                }
               },
               child: const Text(
                 'Delete',
@@ -235,6 +151,70 @@ class _TrainerPageState extends State<TrainerPage> {
         );
       },
     );
+  }
+
+  void _showSnackBar(String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: color),
+    );
+  }
+
+  void _navigateToPage(int index) {
+    if (_currentIndex == index) return;
+
+    setState(() {
+      _currentIndex = index;
+    });
+
+    switch (index) {
+      case 0:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const dashboardAdmin()),
+        );
+        break;
+      case 1:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const MembershipPage()),
+        );
+        break;
+      case 2:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const TrainingPage()),
+        );
+        break;
+      case 3:
+        // Already on TrainerPage
+        break;
+      case 4:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const memberPage()),
+        );
+        break;
+    }
+  }
+
+  void _createTrainer() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const CreateTrainerPage()),
+    );
+    if (result == true) { // If returned with success indication
+      _fetchTrainers(); // Refresh data
+    }
+  }
+
+  void _editTrainer(Map<String, dynamic> trainer) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => EditTrainerPage(trainerData: trainer)),
+    );
+    if (result == true) { // If returned with success indication
+      _fetchTrainers(); // Refresh data
+    }
   }
 
   @override
@@ -314,100 +294,33 @@ class _TrainerPageState extends State<TrainerPage> {
                     color: const Color(0xFF1A1A1A),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Column(
-                    children: [
-                      // Table Header
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: const BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [Color(0xFF007662), Color(0xFF00DCB7)],
-                            begin: Alignment.centerLeft,
-                            end: Alignment.centerRight,
-                          ),
-                          borderRadius: BorderRadius.only(
-                            topLeft: Radius.circular(12),
-                            topRight: Radius.circular(12),
-                          ),
-                        ),
-                        child: const Row(
+                  child: _isLoading
+                      ? const Center(child: CircularProgressIndicator(color: Color(0xFFE8D864)))
+                      : Column(
                           children: [
-                            Expanded(
-                              flex: 1,
-                              child: Text(
-                                'No',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                            Expanded(
-                              flex: 3,
-                              child: Text(
-                                'Name',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                            Expanded(
-                              flex: 2,
-                              child: Text(
-                                'Whatsapp',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                            Expanded(
-                              flex: 2,
-                              child: Text(
-                                'Action',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      // Table Data
-                      Expanded(
-                        child: ListView.builder(
-                          itemCount: trainerData.length, // Menggunakan trainerData
-                          itemBuilder: (context, index) {
-                            final item = trainerData[index]; // Menggunakan trainerData
-                            return Container(
+                            // Table Header
+                            Container(
                               padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                border: Border(
-                                  bottom: BorderSide(
-                                    color: Colors.grey.withOpacity(0.2),
-                                    width: 1,
-                                  ),
+                              decoration: const BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [Color(0xFF007662), Color(0xFF00DCB7)],
+                                  begin: Alignment.centerLeft,
+                                  end: Alignment.centerRight,
+                                ),
+                                borderRadius: BorderRadius.only(
+                                  topLeft: Radius.circular(12),
+                                  topRight: Radius.circular(12),
                                 ),
                               ),
-                              child: Row(
+                              child: const Row(
                                 children: [
                                   Expanded(
                                     flex: 1,
                                     child: Text(
-                                      item['no'].toString(),
-                                      style: const TextStyle(
+                                      'No',
+                                      style: TextStyle(
                                         color: Colors.white,
+                                        fontWeight: FontWeight.bold,
                                         fontSize: 14,
                                       ),
                                       textAlign: TextAlign.center,
@@ -416,9 +329,10 @@ class _TrainerPageState extends State<TrainerPage> {
                                   Expanded(
                                     flex: 3,
                                     child: Text(
-                                      item['nama'],
-                                      style: const TextStyle(
+                                      'Name',
+                                      style: TextStyle(
                                         color: Colors.white,
+                                        fontWeight: FontWeight.bold,
                                         fontSize: 14,
                                       ),
                                       textAlign: TextAlign.center,
@@ -427,9 +341,10 @@ class _TrainerPageState extends State<TrainerPage> {
                                   Expanded(
                                     flex: 2,
                                     child: Text(
-                                      item['whatsapp'],
-                                      style: const TextStyle(
+                                      'Whatsapp',
+                                      style: TextStyle(
                                         color: Colors.white,
+                                        fontWeight: FontWeight.bold,
                                         fontSize: 14,
                                       ),
                                       textAlign: TextAlign.center,
@@ -437,43 +352,118 @@ class _TrainerPageState extends State<TrainerPage> {
                                   ),
                                   Expanded(
                                     flex: 2,
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        GestureDetector(
-                                          onTap: () => _editTrainer(index),
-                                          child: Container(
-                                            padding: const EdgeInsets.all(4),
-                                            child: const Icon(
-                                              Icons.edit,
-                                              color: Color(0xFF00DCB7),
-                                              size: 18,
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        GestureDetector(
-                                          onTap: () => _deleteTrainer(index), // Memanggil _deleteTrainer
-                                          child: Container(
-                                            padding: const EdgeInsets.all(4),
-                                            child: const Icon(
-                                              Icons.delete,
-                                              color: Colors.red,
-                                              size: 18,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
+                                    child: Text(
+                                      'Action',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                      textAlign: TextAlign.center,
                                     ),
                                   ),
                                 ],
                               ),
-                            );
-                          },
+                            ),
+
+                            // Table Data
+                            Expanded(
+                              child: trainerData.isEmpty
+                                  ? const Center(
+                                      child: Text(
+                                        'No trainer data.',
+                                        style: TextStyle(color: Colors.white70),
+                                      ),
+                                    )
+                                  : ListView.builder(
+                                      itemCount: trainerData.length,
+                                      itemBuilder: (context, index) {
+                                        final item = trainerData[index];
+                                        return Container(
+                                          padding: const EdgeInsets.all(16),
+                                          decoration: BoxDecoration(
+                                            border: Border(
+                                              bottom: BorderSide(
+                                                color: Colors.grey.withOpacity(0.2),
+                                                width: 1,
+                                              ),
+                                            ),
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              Expanded(
+                                                flex: 1,
+                                                child: Text(
+                                                  (index + 1).toString(),
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 14,
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                              ),
+                                              Expanded(
+                                                flex: 3,
+                                                child: Text(
+                                                  item['username'] ?? '-', // Sesuaikan dengan key 'username' dari backend
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 14,
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                              ),
+                                              Expanded(
+                                                flex: 2,
+                                                child: Text(
+                                                  item['whatsapp'] ?? '-', // Sesuaikan dengan key 'whatsapp' dari backend
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 14,
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                              ),
+                                              Expanded(
+                                                flex: 2,
+                                                child: Row(
+                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                  mainAxisSize: MainAxisSize.min, // Fix RenderFlex overflow
+                                                  children: [
+                                                    GestureDetector(
+                                                      onTap: () => _editTrainer(item), // Meneruskan seluruh item
+                                                      child: Container(
+                                                        padding: const EdgeInsets.all(4),
+                                                        child: const Icon(
+                                                          Icons.edit,
+                                                          color: Color(0xFF00DCB7),
+                                                          size: 18,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    const SizedBox(width: 8),
+                                                    GestureDetector(
+                                                      onTap: () => _deleteTrainer(item['id']), // Meneruskan ID trainer
+                                                      child: Container(
+                                                        padding: const EdgeInsets.all(4),
+                                                        child: const Icon(
+                                                          Icons.delete,
+                                                          color: Colors.red,
+                                                          size: 18,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      },
+                                    ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
-                  ),
                 ),
               ),
             ),
@@ -531,8 +521,8 @@ class _TrainerPageState extends State<TrainerPage> {
         width: 56,
         height: 56,
         decoration: BoxDecoration(
-          color: isActive 
-              ? const Color(0xFF00B894) 
+          color: isActive
+              ? const Color(0xFF00B894)
               : const Color(0xFF2D2D2D),
           borderRadius: BorderRadius.circular(16),
         ),

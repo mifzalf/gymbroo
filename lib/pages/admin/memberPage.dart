@@ -3,6 +3,9 @@ import 'package:gymbroo/pages/admin/dashboardPage.dart';
 import 'package:gymbroo/pages/admin/membership/membershipPage.dart';
 import 'package:gymbroo/pages/admin/trainer/trainerPage.dart';
 import 'package:gymbroo/pages/admin/training/trainingPage.dart';
+import 'package:http/http.dart' as http; // Import http
+import 'dart:convert'; // Import json
+import 'package:shared_preferences/shared_preferences.dart'; // Import SharedPreferences
 
 class memberPage extends StatefulWidget {
   const memberPage({super.key});
@@ -14,140 +17,108 @@ class memberPage extends StatefulWidget {
 class _memberPageState extends State<memberPage> {
   int _currentIndex = 4;
 
-  // Sample training data - replace with actual data from your backend
-  final List<Map<String, dynamic>> trainingData = [
-    {
-      'no': 1,
-      'nama': 'Rahadya Suset',
-      'email': 'rahadya@example.com',
-      'status': 'aktif'
-    },
-    {
-      'no': 2,
-      'nama': 'Dewi Lestari',
-      'email': 'dewi.lestari@example.com',
-      'status': 'tidak aktif'
-    },
-    {
-      'no': 3,
-      'nama': 'Andi Pratama',
-      'email': 'andi.pratama@example.com',
-      'status': 'aktif'
-    },
-    {
-      'no': 4,
-      'nama': 'Sinta Rahmawati',
-      'email': 'sinta.rahma@example.com',
-      'status': 'aktif'
-    },
-    {
-      'no': 5,
-      'nama': 'Budi Santoso',
-      'email': 'budi.santoso@example.com',
-      'status': 'tidak aktif'
-    },
-    {
-      'no': 6,
-      'nama': 'Nina Kartika',
-      'email': 'nina.kartika@example.com',
-      'status': 'aktif'
-    },
-    {
-      'no': 7,
-      'nama': 'Agus Maulana',
-      'email': 'agus.maulana@example.com',
-      'status': 'aktif'
-    },
-    {
-      'no': 8,
-      'nama': 'Dina Marlina',
-      'email': 'dina.marlina@example.com',
-      'status': 'tidak aktif'
-    },
-    {
-      'no': 9,
-      'nama': 'Rizky Hidayat',
-      'email': 'rizky.hidayat@example.com',
-      'status': 'aktif'
-    },
-  ];
+  List<dynamic> userData = []; // Data pengguna dari backend
+  bool _isLoading = true; // State untuk loading data
+  final String _baseUrl = 'http://localhost:3000/API'; // Your backend URL
 
+  @override
+  void initState() {
+    super.initState();
+    _fetchUsers(); // Fetch data when the page initializes
+  }
+
+  // Function to fetch users list from the backend
+  Future<void> _fetchUsers() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      if (token == null) {
+        _showSnackBar('Authentication token not found. Please log in again.', Colors.red);
+        // Optionally, navigate to login page if token is missing
+        // Navigator.pushReplacementNamed(context, '/login');
+        return;
+      }
+
+      final response = await http.get(
+        Uri.parse('$_baseUrl/admin/users'),
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = json.decode(response.body);
+        // Perbaikan di sini: Akses langsung 'users' karena backend harus mengembalikan struktur yang konsisten.
+        // Jika backend Anda masih membungkusnya dalam 'respon', ubah kembali ke responseData['respon']['users'].
+        setState(() {
+          userData = responseData['users'];
+        });
+      } else if (response.statusCode == 401 || response.statusCode == 403) {
+        final responseBody = json.decode(response.body);
+        _showSnackBar(responseBody['message'] ?? 'Unauthorized or forbidden.', Colors.red);
+      } else {
+        final responseBody = json.decode(response.body);
+        _showSnackBar(responseBody['message'] ?? 'Failed to load users.', Colors.red);
+      }
+    } catch (e) {
+      _showSnackBar('Error fetching users: $e', Colors.red);
+      print('Error fetching users: $e');
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _showSnackBar(String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: color),
+    );
+  }
 
   void _navigateToPage(int index) {
+    if (_currentIndex == index) return;
+
     setState(() {
       _currentIndex = index;
     });
 
     switch (index) {
       case 0:
-        _navigateToDashboardpPage();
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const dashboardAdmin()),
+        );
         break;
       case 1:
-        _navigateToMembershipPage();
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const MembershipPage()),
+        );
         break;
       case 2:
-        _navigateToTrainingPage();
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const TrainingPage()),
+        );
         break;
       case 3:
-        _navigateToTrainerPage();
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const TrainerPage()),
+        );
         break;
       case 4:
-        _navigateToMemberPage();
+        // Already on MemberPage
         break;
     }
   }
-
-  void _navigateToDashboardpPage() {
-    // Navigator.push(
-    //   context,
-    //   MaterialPageRoute(builder: (context) => const dashboardAdmin()),
-    // );
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Navigate to dashboard Page')),
-    );
-  }
-
-  void _navigateToMembershipPage() {
-    // Navigator.push(
-    //   context,
-    //   MaterialPageRoute(builder: (context) => const MembershipPage()),
-    // );
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Navigate to Membership Page')),
-    );
-  }
-
-  void _navigateToTrainingPage() {
-    // Navigator.push(
-    //   context,
-    //   MaterialPageRoute(builder: (context) => const TrainingPage()),
-    // );
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Navigate to Training Page')),
-    );
-  }
-
-  void _navigateToTrainerPage() {
-    // Navigator.push(
-    //   context,
-    //   MaterialPageRoute(builder: (context) => const TrainerPage()),
-    // );
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Navigate to Trainer Page')),
-    );
-  }
-
-  void _navigateToMemberPage() {
-    // Navigator.push(
-    //   context,
-    //   MaterialPageRoute(builder: (context) => const MemberPage()),
-    // );
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Navigate to Member Page')),
-    );
-  }
-
-
 
   @override
   Widget build(BuildContext context) {
@@ -171,16 +142,16 @@ class _memberPageState extends State<memberPage> {
                   bottomRight: Radius.circular(20),
                 ),
               ),
-              child: const Row( // Changed to const as children are const
+              child: const Row(
                 children: [
                   Icon(
-                    Icons.sports_martial_arts,
+                    Icons.people,
                     color: Colors.white,
                     size: 28,
                   ),
                   SizedBox(width: 12),
                   Text(
-                    'Member', // Changed title from 'Trainer' to 'Member'
+                    'Member',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 24,
@@ -191,8 +162,7 @@ class _memberPageState extends State<memberPage> {
               ),
             ),
 
-            // Tambahkan SizedBox untuk memberikan jarak setelah header
-            const SizedBox(height: 24), // Ini akan memberikan jarak yang sama dengan MembershipPage
+            const SizedBox(height: 24),
 
             // Data Table
             Expanded(
@@ -203,100 +173,33 @@ class _memberPageState extends State<memberPage> {
                     color: const Color(0xFF1A1A1A),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Column(
-                    children: [
-                      // Table Header
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: const BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [Color(0xFF007662), Color(0xFF00DCB7)],
-                            begin: Alignment.centerLeft,
-                            end: Alignment.centerRight,
-                          ),
-                          borderRadius: BorderRadius.only(
-                            topLeft: Radius.circular(12),
-                            topRight: Radius.circular(12),
-                          ),
-                        ),
-                        child: const Row(
+                  child: _isLoading
+                      ? const Center(child: CircularProgressIndicator(color: Color(0xFFE8D864)))
+                      : Column(
                           children: [
-                            Expanded(
-                              flex: 1,
-                              child: Text(
-                                'No',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                            Expanded(
-                              flex: 3,
-                              child: Text(
-                                'Name',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                            Expanded(
-                              flex: 2,
-                              child: Text(
-                                'Email',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                            Expanded(
-                              flex: 2,
-                              child: Text(
-                                'Status',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      // Table Data
-                      Expanded(
-                        child: ListView.builder(
-                          itemCount: trainingData.length,
-                          itemBuilder: (context, index) {
-                            final item = trainingData[index];
-                            return Container(
+                            // Table Header
+                            Container(
                               padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                border: Border(
-                                  bottom: BorderSide(
-                                    color: Colors.grey.withOpacity(0.2),
-                                    width: 1,
-                                  ),
+                              decoration: const BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [Color(0xFF007662), Color(0xFF00DCB7)],
+                                  begin: Alignment.centerLeft,
+                                  end: Alignment.centerRight,
+                                ),
+                                borderRadius: BorderRadius.only(
+                                  topLeft: Radius.circular(12),
+                                  topRight: Radius.circular(12),
                                 ),
                               ),
-                              child: Row(
+                              child: const Row(
                                 children: [
                                   Expanded(
                                     flex: 1,
                                     child: Text(
-                                      item['no'].toString(),
-                                      style: const TextStyle(
+                                      'No',
+                                      style: TextStyle(
                                         color: Colors.white,
+                                        fontWeight: FontWeight.bold,
                                         fontSize: 14,
                                       ),
                                       textAlign: TextAlign.center,
@@ -305,9 +208,10 @@ class _memberPageState extends State<memberPage> {
                                   Expanded(
                                     flex: 3,
                                     child: Text(
-                                      item['nama'],
-                                      style: const TextStyle(
+                                      'Name',
+                                      style: TextStyle(
                                         color: Colors.white,
+                                        fontWeight: FontWeight.bold,
                                         fontSize: 14,
                                       ),
                                       textAlign: TextAlign.center,
@@ -316,9 +220,10 @@ class _memberPageState extends State<memberPage> {
                                   Expanded(
                                     flex: 2,
                                     child: Text(
-                                      item['email'],
-                                      style: const TextStyle(
+                                      'Email',
+                                      style: TextStyle(
                                         color: Colors.white,
+                                        fontWeight: FontWeight.bold,
                                         fontSize: 14,
                                       ),
                                       textAlign: TextAlign.center,
@@ -327,22 +232,126 @@ class _memberPageState extends State<memberPage> {
                                   Expanded(
                                     flex: 2,
                                     child: Text(
-                                      item['status'],
-                                      style: const TextStyle(
+                                      'Membership (Days Left)',
+                                      style: TextStyle(
                                         color: Colors.white,
-                                        fontSize: 14,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12,
+                                      ),
+                                      textAlign: TextAlign.center,
+                                    ),
+                                  ),
+                                  Expanded(
+                                    flex: 2,
+                                    child: Text(
+                                      'Trainers Followed',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 12,
                                       ),
                                       textAlign: TextAlign.center,
                                     ),
                                   ),
                                 ],
                               ),
-                            );
-                          },
+                            ),
+
+                            // Table Data
+                            Expanded(
+                              child: userData.isEmpty
+                                  ? const Center(
+                                      child: Text(
+                                        'No user data.',
+                                        style: TextStyle(color: Colors.white70),
+                                      ),
+                                    )
+                                  : ListView.builder(
+                                      itemCount: userData.length,
+                                      itemBuilder: (context, index) {
+                                        final item = userData[index];
+                                        String membershipStatusText;
+                                        if (item['remaining_membership_time'] != null && item['remaining_membership_time'] > 0) {
+                                          membershipStatusText = '${item['remaining_membership_time']} Days Left';
+                                        } else {
+                                          membershipStatusText = 'Expired/None';
+                                        }
+
+                                        return Container(
+                                          padding: const EdgeInsets.all(16),
+                                          decoration: BoxDecoration(
+                                            border: Border(
+                                              bottom: BorderSide(
+                                                color: Colors.grey.withOpacity(0.2),
+                                                width: 1,
+                                              ),
+                                            ),
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              Expanded(
+                                                flex: 1,
+                                                child: Text(
+                                                  (index + 1).toString(),
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 14,
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                              ),
+                                              Expanded(
+                                                flex: 3,
+                                                child: Text(
+                                                  item['username'] ?? '-',
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 14,
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                              ),
+                                              Expanded(
+                                                flex: 2,
+                                                child: Text(
+                                                  item['email'] ?? '-',
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 14,
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                              ),
+                                              Expanded(
+                                                flex: 2,
+                                                child: Text(
+                                                  membershipStatusText,
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 14,
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                              ),
+                                              Expanded(
+                                                flex: 2,
+                                                child: Text(
+                                                  item['total_trainers_followed']?.toString() ?? '0',
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 14,
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      },
+                                    ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
-                  ),
                 ),
               ),
             ),

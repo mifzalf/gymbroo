@@ -1,11 +1,15 @@
-// File: lib/pages/admin/training/editTrainingPage.dart
-
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart'; // Import untuk memilih gambar
-import 'dart:io'; // Import untuk kelas File
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
+import 'dart:typed_data';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:mime/mime.dart';
+import 'package:http_parser/http_parser.dart';
 
 class EditTrainingPage extends StatefulWidget {
-  // Properti untuk menerima data pelatihan yang akan diedit
   final Map<String, dynamic> trainingData;
 
   const EditTrainingPage({super.key, required this.trainingData});
@@ -15,65 +19,222 @@ class EditTrainingPage extends StatefulWidget {
 }
 
 class _EditTrainingPageState extends State<EditTrainingPage> {
-  final TextEditingController _trainingNameController = TextEditingController();
-  final TextEditingController _priceController = TextEditingController();
-  final TextEditingController _timeController = TextEditingController();
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
+  final TextEditingController _titleController = TextEditingController();
   final TextEditingController _descriptionController = TextEditingController();
-  final TextEditingController _durationController = TextEditingController();
+  final TextEditingController _priceController = TextEditingController();
+  final TextEditingController _daysController = TextEditingController();
+  final TextEditingController _timeStartController = TextEditingController();
+  final TextEditingController _totalSessionController = TextEditingController();
+  final TextEditingController _trainerIdController = TextEditingController();
 
-  File? _backgroundImage; // Variabel untuk menyimpan gambar latar belakang
+  File? _newBackgroundImage;
+  Uint8List? _newBackgroundImageBytes;
+  XFile? _pickedXFile;
+  String? _currentBackgroundImageUrl;
+  final ImagePicker _picker = ImagePicker();
+  bool _isLoading = false;
+
+  final String _baseUrl = 'http://localhost:3000/API';
+  final String _imagePathPrefix = 'http://localhost:3000/images/trainings/';
+
+  List<dynamic> _trainers = [];
+  String? _selectedDay;
+  int? _selectedTrainerId;
+
+  final List<String> _daysOfWeek = [
+    'Senin', 'Selasa', 'Rabu', 'Kamis', 'Jumat', 'Sabtu', 'Minggu'
+  ];
 
   @override
   void initState() {
     super.initState();
-    // Inisialisasi controller dengan data yang ada
-    _trainingNameController.text = widget.trainingData['trainingName'] ?? '';
-    _priceController.text = widget.trainingData['price'] ?? '';
-    _timeController.text = widget.trainingData['time'] ?? '';
+    // Initialize controllers with received training data
+    _titleController.text = widget.trainingData['title'] ?? '';
     _descriptionController.text = widget.trainingData['description'] ?? '';
-    _durationController.text = widget.trainingData['duration'] ?? '';
+    _priceController.text = widget.trainingData['price']?.toString() ?? '';
+    // Use the actual day value from backend if available, otherwise fallback
+    _selectedDay = widget.trainingData['days']; // Set initial value for dropdown
+    _timeStartController.text = widget.trainingData['time_start']?.substring(0, 5) ?? ''; // Format time_start
+    _totalSessionController.text = widget.trainingData['total_session']?.toString() ?? '';
+    
+    // Set initial selected values for dropdowns
+    _selectedTrainerId = widget.trainingData['trainer_id'];
 
-    // Inisialisasi _backgroundImage jika ada path gambar di trainingData
-    if (widget.trainingData['imagePath'] != null &&
-        File(widget.trainingData['imagePath']).existsSync()) {
-      _backgroundImage = File(widget.trainingData['imagePath']);
+    // Set URL for existing background image
+    if (widget.trainingData['background'] != null && widget.trainingData['background'] != 'default.png') {
+      _currentBackgroundImageUrl = _imagePathPrefix + widget.trainingData['background'];
+    }
+
+    _fetchTrainersForDropdown(); // Fetch trainers for dropdown
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    _descriptionController.dispose();
+    _priceController.dispose();
+    _daysController.dispose();
+    _timeStartController.dispose();
+    _totalSessionController.dispose();
+    _trainerIdController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _fetchTrainersForDropdown() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      if (token == null) {
+        _showSnackBar('Authentication token not found. Please log in again.', Colors.red);
+        return;
+      }
+
+      final response = await http.get(
+        Uri.parse('$_baseUrl/admin/trainers'),
+        headers: {
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = json.decode(response.body);
+        setState(() {
+          _trainers = responseData['data'];
+        });
+      } else {
+        final responseBody = json.decode(response.body);
+        _showSnackBar(responseBody['message'] ?? 'Failed to load trainers for dropdown.', Colors.red);
+      }
+    } catch (e) {
+      _showSnackBar('Error fetching trainers: $e', Colors.red);
+      print('Error fetching trainers: $e');
     }
   }
 
-  // Fungsi untuk menangani pembaruan pelatihan
-  void _updateTraining() {
-    print('Updating Training:');
-    print('New Training Name: ${_trainingNameController.text}');
-    print('New Price: ${_priceController.text}');
-    print('New Time: ${_timeController.text}');
-    print('New Description: ${_descriptionController.text}');
-    print('New Duration: ${_durationController.text}');
-    if (_backgroundImage != null) {
-      print('New Background Image Path: ${_backgroundImage!.path}');
-    } else {
-      print('No new background image selected.');
-    }
-
-    // TODO: Implementasikan logika pembaruan data pelatihan di sini
-    // Termasuk mengirim _backgroundImage.path (jika ada) ke backend
-    // atau memperbarui data lokal.
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Training updated successfully!')),
-    );
-    Navigator.pop(context); // Kembali ke halaman sebelumnya
-  }
-
-  // Fungsi untuk memilih gambar dari galeri
   Future<void> _pickImage() async {
-    final pickedFile =
-        await ImagePicker().pickImage(source: ImageSource.gallery);
+    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+    if (image != null) {
+      if (kIsWeb) {
+        final bytes = await image.readAsBytes();
+        setState(() {
+          _newBackgroundImageBytes = bytes;
+          _newBackgroundImage = null;
+          _currentBackgroundImageUrl = null;
+          _pickedXFile = image;
+        });
+      } else {
+        setState(() {
+          _newBackgroundImage = File(image.path);
+          _newBackgroundImageBytes = null;
+          _currentBackgroundImageUrl = null;
+          _pickedXFile = image;
+        });
+      }
+    }
+  }
 
-    if (pickedFile != null) {
+  // >>> PERUBAHAN DI SINI: Format waktu ke HH:MM (24 jam)
+  Future<void> _selectTime(BuildContext context) async {
+    final TimeOfDay? picked = await showTimePicker(
+      context: context,
+      initialTime: TimeOfDay.now(),
+      builder: (BuildContext context, Widget? child) {
+        return MediaQuery(
+          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true), // Force 24-hour format for picker
+          child: child!,
+        );
+      },
+    );
+    if (picked != null) {
       setState(() {
-        _backgroundImage = File(pickedFile.path);
+        _timeStartController.text = '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
       });
     }
+  }
+  // <<< AKHIR PERUBAHAN
+
+  // Function to handle updating a training
+  void _updateTraining() async {
+    if (_formKey.currentState!.validate()) {
+      setState(() {
+        _isLoading = true;
+      });
+
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final token = prefs.getString('token');
+
+        if (token == null) {
+          _showSnackBar('Authentication token not found. Please log in again.', Colors.red);
+          return;
+        }
+
+        var request = http.MultipartRequest(
+          'PATCH', // Using PATCH for update
+          Uri.parse('$_baseUrl/admin/trainings/${widget.trainingData['id']}'),
+        );
+        request.headers['Authorization'] = 'Bearer $token';
+
+        request.fields['title'] = _titleController.text;
+        request.fields['description'] = _descriptionController.text;
+        request.fields['price'] = _priceController.text;
+        request.fields['days'] = _selectedDay ?? '';
+        request.fields['timeStart'] = _timeStartController.text;
+        request.fields['totalSession'] = _totalSessionController.text;
+        request.fields['trainerId'] = _selectedTrainerId?.toString() ?? '';
+
+        // Add background file if selected
+        if (kIsWeb && _pickedXFile != null) {
+          final String? mimeType = lookupMimeType(_pickedXFile!.name);
+          request.files.add(
+            http.MultipartFile.fromBytes(
+              'background',
+              _newBackgroundImageBytes!,
+              filename: _pickedXFile!.name,
+              contentType: (mimeType != null) ? MediaType.parse(mimeType) : MediaType('image', 'jpeg'),
+            ),
+          );
+        } else if (!kIsWeb && _newBackgroundImage != null) {
+          final String? mimeType = lookupMimeType(_newBackgroundImage!.path);
+          request.files.add(
+            await http.MultipartFile.fromPath(
+              'background',
+              _newBackgroundImage!.path,
+              filename: _pickedXFile?.name,
+              contentType: (mimeType != null) ? MediaType.parse(mimeType) : null,
+            ),
+          );
+        }
+
+        var response = await request.send();
+        final responseBody = await response.stream.bytesToString();
+        final decodedBody = json.decode(responseBody);
+
+        if (response.statusCode == 200) {
+          _showSnackBar('Training updated successfully!', Colors.green);
+          Navigator.pop(context, true);
+        } else if (response.statusCode == 401 || response.statusCode == 403) {
+          _showSnackBar(decodedBody['message'] ?? 'Unauthorized or forbidden.', Colors.red);
+        } else {
+          _showSnackBar(decodedBody['message'] ?? 'Failed to update training.', Colors.red);
+        }
+      } catch (e) {
+        _showSnackBar('An error occurred: $e', Colors.red);
+        print('Error updating training: $e');
+      } finally {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _showSnackBar(String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: color),
+    );
   }
 
   void _navigateBack() {
@@ -87,7 +248,7 @@ class _EditTrainingPageState extends State<EditTrainingPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // Header dengan tombol kembali dan judul
+            // Header
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Row(
@@ -114,7 +275,7 @@ class _EditTrainingPageState extends State<EditTrainingPage> {
                   ),
                   const SizedBox(width: 12),
                   const Text(
-                    'Edit Training Class', // Judul halaman
+                    'Edit Training Class',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 20,
@@ -125,180 +286,196 @@ class _EditTrainingPageState extends State<EditTrainingPage> {
               ),
             ),
 
-            // Konten form
+            // Form content
             Expanded(
               child: SingleChildScrollView(
-                // Tambahkan SingleChildScrollView agar bisa discroll jika keyboard muncul
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Column(
-                  children: [
-                    const SizedBox(height: 24),
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 24),
 
-                    // Area untuk menampilkan atau memilih gambar latar belakang
-                    GestureDetector(
-                      onTap: _pickImage,
-                      child: Container(
-                        height: 150,
-                        width: double.infinity,
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF474242),
-                          borderRadius: BorderRadius.circular(12),
-                          image: _backgroundImage != null
-                              ? DecorationImage(
-                                  image: FileImage(_backgroundImage!),
-                                  fit: BoxFit.cover,
+                      // Background image upload section
+                      GestureDetector(
+                        onTap: _pickImage,
+                        child: Container(
+                          height: 150,
+                          width: double.infinity,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF474242),
+                            borderRadius: BorderRadius.circular(12),
+                            image: _newBackgroundImage != null
+                                ? DecorationImage(image: FileImage(_newBackgroundImage!), fit: BoxFit.cover)
+                                : _newBackgroundImageBytes != null
+                                    ? DecorationImage(image: MemoryImage(_newBackgroundImageBytes!), fit: BoxFit.cover)
+                                    : _currentBackgroundImageUrl != null
+                                        ? DecorationImage(image: NetworkImage(_currentBackgroundImageUrl!), fit: BoxFit.cover)
+                                        : null,
+                          ),
+                          child: (_newBackgroundImage == null && _newBackgroundImageBytes == null && _currentBackgroundImageUrl == null)
+                              ? Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(Icons.add_a_photo, color: Colors.grey, size: 40),
+                                    const SizedBox(height: 8),
+                                    Text('Add/Change Background Photo', style: TextStyle(color: Colors.grey[400])),
+                                  ],
                                 )
                               : null,
                         ),
-                        child: _backgroundImage == null
-                            ? Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  const Icon(
-                                    Icons.add_a_photo,
-                                    color: Colors.grey,
-                                    size: 40,
-                                  ),
-                                  const SizedBox(height: 8),
-                                  Text(
-                                    'Add/Change Background Photo',
-                                    style: TextStyle(color: Colors.grey[400]),
-                                  ),
-                                ],
-                              )
-                            : null, // Jika sudah ada gambar, tidak perlu menampilkan ikon/teks
                       ),
-                    ),
 
-                    const SizedBox(height: 24), // Tambahkan spasi di sini
+                      const SizedBox(height: 24),
 
-                    // Input Nama Pelatihan
-                    Container(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF474242),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: TextField(
-                        controller: _trainingNameController,
-                        style: const TextStyle(color: Colors.white),
-                        decoration: InputDecoration(
-                          hintText: 'Training Name',
-                          hintStyle: TextStyle(color: Colors.grey[400]),
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.all(16),
+                      // Title Input
+                      Container(
+                        decoration: BoxDecoration(color: const Color(0xFF474242), borderRadius: BorderRadius.circular(12)),
+                        child: TextFormField(
+                          controller: _titleController,
+                          style: const TextStyle(color: Colors.white),
+                          decoration: InputDecoration(hintText: 'Training Name', hintStyle: TextStyle(color: Colors.grey[400]), border: InputBorder.none, contentPadding: const EdgeInsets.all(16)),
+                          validator: (value) => value == null || value.isEmpty ? 'Training Name is required.' : null,
                         ),
                       ),
-                    ),
 
-                    const SizedBox(height: 16),
+                      const SizedBox(height: 16),
 
-                    // Input Harga
-                    Container(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF474242),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: TextField(
-                        controller: _priceController,
-                        style: const TextStyle(color: Colors.white),
-                        keyboardType: TextInputType.number,
-                        decoration: InputDecoration(
-                          hintText: 'Price (e.g., Rp 50.000)',
-                          hintStyle: TextStyle(color: Colors.grey[400]),
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.all(16),
+                      // Price Input
+                      Container(
+                        decoration: BoxDecoration(color: const Color(0xFF474242), borderRadius: BorderRadius.circular(12)),
+                        child: TextFormField(
+                          controller: _priceController,
+                          style: const TextStyle(color: Colors.white),
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(hintText: 'Price (e.g., 50000)', hintStyle: TextStyle(color: Colors.grey[400]), border: InputBorder.none, contentPadding: const EdgeInsets.all(16)),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) return 'Price is required.';
+                            if (int.tryParse(value) == null || int.parse(value) <= 0) return 'Price must be a positive number.';
+                            return null;
+                          },
                         ),
                       ),
-                    ),
 
-                    const SizedBox(height: 16),
+                      const SizedBox(height: 16),
 
-                    // Input Waktu
-                    Container(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF474242),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: TextField(
-                        controller: _timeController,
-                        style: const TextStyle(color: Colors.white),
-                        decoration: InputDecoration(
-                          hintText: 'Start Time (e.g., 16.30)',
-                          hintStyle: TextStyle(color: Colors.grey[400]),
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.all(16),
+                      // Day Dropdown
+                      Container(
+                        decoration: BoxDecoration(color: const Color(0xFF474242), borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        child: DropdownButtonFormField<String>(
+                          dropdownColor: const Color(0xFF474242),
+                          style: const TextStyle(color: Colors.white),
+                          decoration: InputDecoration(hintText: 'Select Day', hintStyle: TextStyle(color: Colors.grey[400]), border: InputBorder.none),
+                          value: _selectedDay,
+                          items: _daysOfWeek.map((String day) {
+                            return DropdownMenuItem<String>(value: day, child: Text(day));
+                          }).toList(),
+                          onChanged: (String? newValue) {
+                            setState(() {
+                              _selectedDay = newValue;
+                            });
+                          },
+                          validator: (value) => value == null || value.isEmpty ? 'Day is required.' : null,
                         ),
                       ),
-                    ),
 
-                    const SizedBox(height: 16),
+                      const SizedBox(height: 16),
 
-                    // Input Deskripsi
-                    Container(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF474242),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: TextField(
-                        controller: _descriptionController,
-                        style: const TextStyle(color: Colors.white),
-                        maxLines: 3,
-                        decoration: InputDecoration(
-                          hintText: 'Description',
-                          hintStyle: TextStyle(color: Colors.grey[400]),
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.all(16),
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // Input Durasi
-                    Container(
-                      decoration: BoxDecoration(
-                        color: const Color(0xFF474242),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: TextField(
-                        controller: _durationController,
-                        style: const TextStyle(color: Colors.white),
-                        decoration: InputDecoration(
-                          hintText: 'Duration (e.g., 4 weeks)',
-                          hintStyle: TextStyle(color: Colors.grey[400]),
-                          border: InputBorder.none,
-                          contentPadding: const EdgeInsets.all(16),
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 32),
-
-                    // Tombol Update
-                    SizedBox(
-                      width: double.infinity,
-                      height: 56,
-                      child: ElevatedButton(
-                        onPressed: _updateTraining,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFFE6E886),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                      // Time Start Input (with time picker)
+                      Container(
+                        decoration: BoxDecoration(color: const Color(0xFF474242), borderRadius: BorderRadius.circular(12)),
+                        child: TextFormField(
+                          controller: _timeStartController,
+                          style: const TextStyle(color: Colors.white),
+                          readOnly: true,
+                          onTap: () => _selectTime(context),
+                          decoration: InputDecoration(
+                            hintText: 'Start Time (e.g., 16:30)',
+                            hintStyle: TextStyle(color: Colors.grey[400]),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.all(16),
                           ),
-                          elevation: 0,
-                        ),
-                        child: const Text(
-                          'Update',
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                          ),
+                          validator: (value) => value == null || value.isEmpty ? 'Start Time is required.' : null,
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 24), // Spasi di bawah tombol
-                  ],
+
+                      const SizedBox(height: 16),
+
+                      // Total Session Input
+                      Container(
+                        decoration: BoxDecoration(color: const Color(0xFF474242), borderRadius: BorderRadius.circular(12)),
+                        child: TextFormField(
+                          controller: _totalSessionController,
+                          style: const TextStyle(color: Colors.white),
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(hintText: 'Total Session (e.g., 8)', hintStyle: TextStyle(color: Colors.grey[400]), border: InputBorder.none, contentPadding: const EdgeInsets.all(16)),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) return 'Total Session is required.';
+                            if (int.tryParse(value) == null || int.parse(value) <= 0) return 'Total Session must be a positive number.';
+                            return null;
+                          },
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Trainer Dropdown
+                      Container(
+                        decoration: BoxDecoration(color: const Color(0xFF474242), borderRadius: BorderRadius.circular(12)),
+                        padding: const EdgeInsets.symmetric(horizontal: 16.0),
+                        child: DropdownButtonFormField<int>(
+                          dropdownColor: const Color(0xFF474242),
+                          style: const TextStyle(color: Colors.white),
+                          decoration: InputDecoration(hintText: 'Select Trainer', hintStyle: TextStyle(color: Colors.grey[400]), border: InputBorder.none),
+                          value: _selectedTrainerId,
+                          items: _trainers.map((dynamic trainer) {
+                            return DropdownMenuItem<int>(value: trainer['id'], child: Text(trainer['username']));
+                          }).toList(),
+                          onChanged: (int? newValue) {
+                            setState(() {
+                              _selectedTrainerId = newValue;
+                            });
+                          },
+                          validator: (value) => value == null ? 'Trainer is required.' : null,
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Description Input (Multi-line)
+                      Container(
+                        decoration: BoxDecoration(color: const Color(0xFF474242), borderRadius: BorderRadius.circular(12)),
+                        child: TextFormField(
+                          controller: _descriptionController,
+                          style: const TextStyle(color: Colors.white),
+                          maxLines: 3,
+                          decoration: InputDecoration(hintText: 'Description', hintStyle: TextStyle(color: Colors.grey[400]), border: InputBorder.none, contentPadding: const EdgeInsets.all(16)),
+                          validator: (value) => value == null || value.isEmpty ? 'Description is required.' : null,
+                        ),
+                      ),
+
+                      const SizedBox(height: 32),
+
+                      // Update Button
+                      SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : _updateTraining,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFE6E886),
+                            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                            elevation: 0,
+                          ),
+                          child: _isLoading
+                              ? const CircularProgressIndicator(color: Colors.black)
+                              : const Text('Update', style: TextStyle(color: Colors.black, fontSize: 18, fontWeight: FontWeight.w600)),
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -306,15 +483,5 @@ class _EditTrainingPageState extends State<EditTrainingPage> {
         ),
       ),
     );
-  }
-
-  @override
-  void dispose() {
-    _trainingNameController.dispose();
-    _priceController.dispose();
-    _timeController.dispose();
-    _descriptionController.dispose();
-    _durationController.dispose();
-    super.dispose();
   }
 }
