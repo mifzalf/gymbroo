@@ -1,49 +1,157 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
 import 'dart:io';
+import 'dart:typed_data';
+import 'package:http/http.dart' as http;
+import 'package:shared_preferences/shared_preferences.dart';
+import 'dart:convert';
+import 'package:flutter/foundation.dart' show kIsWeb;
+import 'package:mime/mime.dart'; // Import mime package
+import 'package:http_parser/http_parser.dart'; // Import for MediaType
 
 class EditMembershipPage extends StatefulWidget {
+  final Map<String, dynamic> membership;
+
+  const EditMembershipPage({super.key, required this.membership});
+
   @override
   _EditMembershipPageState createState() => _EditMembershipPageState();
 }
 
 class _EditMembershipPageState extends State<EditMembershipPage> {
+  final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
   final TextEditingController _membershipTypeController = TextEditingController();
   final TextEditingController _priceController = TextEditingController();
   final TextEditingController _durationController = TextEditingController();
-  
-  File? _backgroundImage;
-  final ImagePicker _picker = ImagePicker();
 
-  // Function to pick image
-  Future<void> _pickImage() async {
-    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
-    if (image != null) {
-      setState(() {
-        _backgroundImage = File(image.path);
-      });
+  File? _newBackgroundImage; // For non-web
+  Uint8List? _newBackgroundImageBytes; // For web
+  XFile? _pickedXFile; // Store XFile to get name and mimeType
+  String? _currentBackgroundImageUrl; // For existing image URL from backend
+  final ImagePicker _picker = ImagePicker();
+  bool _isLoading = false;
+
+  final String _baseUrl = 'http://localhost:3000/API'; // Your backend URL
+  final String _imagePathPrefix = 'http://localhost:3000/images/memberships/'; // Prefix for images from backend
+
+  @override
+  void initState() {
+    super.initState();
+    _membershipTypeController.text = widget.membership['membership_type'] ?? '';
+    _priceController.text = widget.membership['price']?.toString() ?? '';
+    _durationController.text = widget.membership['membership_duration']?.toString() ?? '';
+    
+    if (widget.membership['background'] != null && widget.membership['background'] != 'default.png') {
+      _currentBackgroundImageUrl = _imagePathPrefix + widget.membership['background'];
     }
   }
 
-  // Function to handle create membership
-  void _editeMembership() {
-    // Implement create membership logic here
-    print('Membership Type: ${_membershipTypeController.text}');
-    print('Price: ${_priceController.text}');
-    print('Duration: ${_durationController.text}');
-    print('Background Image: $_backgroundImage');
-    
-    // Navigate back or show success message
+  Future<void> _pickImage() async {
+    final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
+    if (image != null) {
+      if (kIsWeb) {
+        final bytes = await image.readAsBytes();
+        setState(() {
+          _newBackgroundImageBytes = bytes;
+          _newBackgroundImage = null;
+          _currentBackgroundImageUrl = null; // Clear old URL when new image is picked
+          _pickedXFile = image; // Store XFile
+        });
+      } else {
+        setState(() {
+          _newBackgroundImage = File(image.path);
+          _newBackgroundImageBytes = null;
+          _currentBackgroundImageUrl = null; // Clear old URL when new image is picked
+          _pickedXFile = image; // Store XFile
+        });
+      }
+    }
+  }
+
+  void _editMembership() async {
+    if (_formKey.currentState!.validate()) {
+      setState(() {
+        _isLoading = true;
+      });
+
+      try {
+        final prefs = await SharedPreferences.getInstance();
+        final token = prefs.getString('token');
+
+        if (token == null) {
+          _showSnackBar('Authentication token not found. Please log in again.', Colors.red);
+          return;
+        }
+
+        var request = http.MultipartRequest(
+          'PATCH', // Using PATCH for update
+          Uri.parse('$_baseUrl/admin/memberships/${widget.membership['id']}'),
+        );
+        request.headers['Authorization'] = 'Bearer $token';
+
+        request.fields['membershipDuration'] = _durationController.text;
+        request.fields['price'] = _priceController.text;
+        request.fields['membershipType'] = _membershipTypeController.text;
+
+        // Only add file if a new image is selected
+        if (_newBackgroundImage != null || _newBackgroundImageBytes != null) {
+          if (kIsWeb && _pickedXFile != null) {
+            final String? mimeType = lookupMimeType(_pickedXFile!.name);
+            request.files.add(
+              http.MultipartFile.fromBytes(
+                'background',
+                _newBackgroundImageBytes!,
+                filename: _pickedXFile!.name,
+                contentType: (mimeType != null) ? MediaType.parse(mimeType) : MediaType('image', 'jpeg'),
+              ),
+            );
+          } else if (!kIsWeb && _newBackgroundImage != null) {
+            final String? mimeType = lookupMimeType(_newBackgroundImage!.path);
+            request.files.add(
+              await http.MultipartFile.fromPath(
+                'background',
+                _newBackgroundImage!.path,
+                filename: _pickedXFile?.name, // Use original XFile name if available
+                contentType: (mimeType != null) ? MediaType.parse(mimeType) : null,
+              ),
+            );
+          }
+        }
+        // If _newBackgroundImage and _newBackgroundImageBytes are both null,
+        // no 'background' file will be added to the request,
+        // which means the backend will retain the existing background.
+
+        var response = await request.send();
+        final responseBody = await response.stream.bytesToString();
+        final decodedBody = json.decode(responseBody);
+
+        if (response.statusCode == 200) { // Backend returns 200
+          _showSnackBar('Membership updated successfully!', Colors.green);
+          Navigator.pop(context, true);
+        } else if (response.statusCode == 401 || response.statusCode == 403) {
+          _showSnackBar(decodedBody['message'] ?? 'Unauthorized or forbidden.', Colors.red);
+        } else {
+          _showSnackBar(decodedBody['message'] ?? 'Failed to update membership.', Colors.red);
+        }
+      } catch (e) {
+        _showSnackBar('An error occurred: $e', Colors.red);
+        print('Error updating membership: $e');
+      } finally {
+        setState(() {
+          _isLoading = false;
+        });
+      }
+    }
+  }
+
+  void _showSnackBar(String message, Color color) {
     ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Membership edited successfully!')),
+      SnackBar(content: Text(message), backgroundColor: color),
     );
   }
 
-  // Function to navigate back to membership page
   void _navigateBack() {
     Navigator.pop(context);
-    // Or navigate to specific membership page
-    // Navigator.pushReplacementNamed(context, '/membershipPage');
   }
 
   @override
@@ -53,7 +161,7 @@ class _EditMembershipPageState extends State<EditMembershipPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // Header with back button and title
+            // Header
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Row(
@@ -63,7 +171,7 @@ class _EditMembershipPageState extends State<EditMembershipPage> {
                     child: Container(
                       width: 40,
                       height: 40,
-                      decoration: BoxDecoration(
+                      decoration: const BoxDecoration(
                         gradient: LinearGradient(
                           colors: [Color(0xFF007662), Color(0xFF00DCB7)],
                           begin: Alignment.topLeft,
@@ -71,15 +179,15 @@ class _EditMembershipPageState extends State<EditMembershipPage> {
                         ),
                         shape: BoxShape.circle,
                       ),
-                      child: Icon(
+                      child: const Icon(
                         Icons.arrow_back,
                         color: Colors.white,
                         size: 20,
                       ),
                     ),
                   ),
-                  SizedBox(width: 12),
-                  Text(
+                  const SizedBox(width: 12),
+                  const Text(
                     'Edit Membership Type',
                     style: TextStyle(
                       color: Colors.white,
@@ -90,164 +198,172 @@ class _EditMembershipPageState extends State<EditMembershipPage> {
                 ],
               ),
             ),
-            
+
             // Form content
             Expanded(
-              child: Padding(
+              child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
-                child: Column(
-                  children: [
-                    SizedBox(height: 24),
-                    
-                    // Background image upload section
-                    GestureDetector(
-                      onTap: _pickImage,
-                      child: Container(
-                        width: double.infinity,
-                        height: 192,
+                child: Form(
+                  key: _formKey,
+                  child: Column(
+                    children: [
+                      const SizedBox(height: 24),
+
+                      // Background image upload section
+                      GestureDetector(
+                        onTap: _pickImage,
+                        child: Container(
+                          width: double.infinity,
+                          height: 192,
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF474242),
+                            borderRadius: BorderRadius.circular(12),
+                            image: _newBackgroundImage != null
+                                ? DecorationImage(image: FileImage(_newBackgroundImage!), fit: BoxFit.cover)
+                                : _newBackgroundImageBytes != null
+                                    ? DecorationImage(image: MemoryImage(_newBackgroundImageBytes!), fit: BoxFit.cover)
+                                    : _currentBackgroundImageUrl != null
+                                        ? DecorationImage(image: NetworkImage(_currentBackgroundImageUrl!), fit: BoxFit.cover)
+                                        : null,
+                          ),
+                          child: (_newBackgroundImage == null && _newBackgroundImageBytes == null && _currentBackgroundImageUrl == null)
+                              ? Column(
+                                  mainAxisAlignment: MainAxisAlignment.center,
+                                  children: [
+                                    Icon(
+                                      Icons.add,
+                                      color: Colors.grey[400],
+                                      size: 40,
+                                    ),
+                                    const SizedBox(height: 8),
+                                    Text(
+                                      'Add Background Image',
+                                      style: TextStyle(
+                                        color: Colors.grey[400],
+                                        fontSize: 14,
+                                      ),
+                                    ),
+                                  ],
+                                )
+                              : null,
+                        ),
+                      ),
+
+                      const SizedBox(height: 24),
+
+                      // Membership type input
+                      Container(
                         decoration: BoxDecoration(
-                          color: Color(0xFF474242),
+                          color: const Color(0xFF474242),
                           borderRadius: BorderRadius.circular(12),
                         ),
-                        child: _backgroundImage != null
-                            ? Stack(
-                                children: [
-                                  ClipRRect(
-                                    borderRadius: BorderRadius.circular(12),
-                                    child: Image.file(
-                                      _backgroundImage!,
-                                      width: double.infinity,
-                                      height: double.infinity,
-                                      fit: BoxFit.cover,
-                                    ),
-                                  ),
-                                  Positioned(
-                                    top: 12,
-                                    right: 12,
-                                    child: Container(
-                                      padding: EdgeInsets.all(8),
-                                      decoration: BoxDecoration(
-                                        color: Colors.black.withOpacity(0.5),
-                                        shape: BoxShape.circle,
-                                      ),
-                                      child: Icon(
-                                        Icons.camera_alt,
-                                        color: Colors.white,
-                                        size: 16,
-                                      ),
-                                    ),
-                                  ),
-                                ],
-                              )
-                            : Column(
-                                mainAxisAlignment: MainAxisAlignment.center,
-                                children: [
-                                  Icon(
-                                    Icons.add,
-                                    color: Colors.grey[400],
-                                    size: 40,
-                                  ),
-                                  SizedBox(height: 8),
-                                  Text(
-                                    'Add Background Image',
-                                    style: TextStyle(
-                                      color: Colors.grey[400],
-                                      fontSize: 14,
-                                    ),
-                                  ),
-                                ],
-                              ),
-                      ),
-                    ),
-                    
-                    SizedBox(height: 24),
-                    
-                    // Membership type input
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Color(0xFF474242),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: TextField(
-                        controller: _membershipTypeController,
-                        style: TextStyle(color: Colors.white),
-                        decoration: InputDecoration(
-                          hintText: 'Membership type',
-                          hintStyle: TextStyle(color: Colors.grey[400]),
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.all(16),
-                        ),
-                      ),
-                    ),
-                    
-                    SizedBox(height: 16),
-                    
-                    // Price input
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Color(0xFF474242),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: TextField(
-                        controller: _priceController,
-                        style: TextStyle(color: Colors.white),
-                        keyboardType: TextInputType.number,
-                        decoration: InputDecoration(
-                          hintText: 'Price in IDR',
-                          hintStyle: TextStyle(color: Colors.grey[400]),
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.all(16),
-                        ),
-                      ),
-                    ),
-                    
-                    SizedBox(height: 16),
-                    
-                    // Duration input
-                    Container(
-                      decoration: BoxDecoration(
-                        color: Color(0xFF474242),
-                        borderRadius: BorderRadius.circular(12),
-                      ),
-                      child: TextField(
-                        controller: _durationController,
-                        style: TextStyle(color: Colors.white),
-                        keyboardType: TextInputType.number,
-                        decoration: InputDecoration(
-                          hintText: 'Duration by month',
-                          hintStyle: TextStyle(color: Colors.grey[400]),
-                          border: InputBorder.none,
-                          contentPadding: EdgeInsets.all(16),
-                        ),
-                      ),
-                    ),
-                    
-                    SizedBox(height: 32),
-                    
-                    // Create button
-                    SizedBox(
-                      width: double.infinity,
-                      height: 56,
-                      child: ElevatedButton(
-                        onPressed: _editeMembership,
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: Color(0xFFE6E886),
-                          shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(12),
+                        child: TextFormField(
+                          controller: _membershipTypeController,
+                          style: const TextStyle(color: Colors.white),
+                          decoration: InputDecoration(
+                            hintText: 'Membership Type',
+                            hintStyle: TextStyle(color: Colors.grey[400]),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.all(16),
                           ),
-                          elevation: 0,
-                        ),
-                        child: Text(
-                          'Create',
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontSize: 18,
-                            fontWeight: FontWeight.w600,
-                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Membership type is required.';
+                            }
+                            return null;
+                          },
                         ),
                       ),
-                    ),
-                  ],
+
+                      const SizedBox(height: 16),
+
+                      // Price input
+                      Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF474242),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: TextFormField(
+                          controller: _priceController,
+                          style: const TextStyle(color: Colors.white),
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            hintText: 'Price in IDR',
+                            hintStyle: TextStyle(color: Colors.grey[400]),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.all(16),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Price is required.';
+                            }
+                            if (int.tryParse(value) == null || int.parse(value) <= 0) {
+                              return 'Price must be a positive number.';
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+
+                      const SizedBox(height: 16),
+
+                      // Duration input
+                      Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF474242),
+                          borderRadius: BorderRadius.circular(12),
+                        ),
+                        child: TextFormField(
+                          controller: _durationController,
+                          style: const TextStyle(color: Colors.white),
+                          keyboardType: TextInputType.number,
+                          decoration: InputDecoration(
+                            hintText: 'Duration in months',
+                            hintStyle: TextStyle(color: Colors.grey[400]),
+                            border: InputBorder.none,
+                            contentPadding: const EdgeInsets.all(16),
+                          ),
+                          validator: (value) {
+                            if (value == null || value.isEmpty) {
+                              return 'Duration is required.';
+                            }
+                            if (int.tryParse(value) == null || int.parse(value) <= 0) {
+                              return 'Duration must be a positive number.';
+                            }
+                            return null;
+                          },
+                        ),
+                      ),
+
+                      const SizedBox(height: 32),
+
+                      // Edit button
+                      SizedBox(
+                        width: double.infinity,
+                        height: 56,
+                        child: ElevatedButton(
+                          onPressed: _isLoading ? null : _editMembership,
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: const Color(0xFFE6E886),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: _isLoading
+                              ? const CircularProgressIndicator(color: Colors.black)
+                              : const Text(
+                                  'Edit',
+                                  style: TextStyle(
+                                    color: Colors.black,
+                                    fontSize: 18,
+                                    fontWeight: FontWeight.w600,
+                                  ),
+                                ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
             ),

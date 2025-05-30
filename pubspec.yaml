@@ -13,6 +13,8 @@ dependencies:
   image_picker: ^1.1.2
   shared_preferences: ^2.2.2 # versi bisa disesuaikan dengan versi terbaru
   url_launcher: ^6.2.2
+  http: ^1.2.1
+  mime: ^1.0.0
 
 
 dev_dependencies:

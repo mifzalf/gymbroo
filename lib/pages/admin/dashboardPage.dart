@@ -3,13 +3,16 @@ import 'package:gymbroo/pages/admin/memberPage.dart';
 import 'package:gymbroo/pages/admin/membership/membershipPage.dart';
 import 'package:gymbroo/pages/admin/trainer/trainerPage.dart';
 import 'package:gymbroo/pages/admin/training/trainingPage.dart';
+import 'package:http/http.dart' as http; // Import http
+import 'dart:convert'; // Import json
+import 'package:shared_preferences/shared_preferences.dart'; // Untuk menyimpan dan mengambil token
 
 class dashboardAdmin extends StatefulWidget {
   final String adminName;
-  
+
   const dashboardAdmin({
     super.key,
-    this.adminName = "Rahadya Suset", // Default admin name
+    this.adminName = "Admin", // Default admin name
   });
 
   @override
@@ -19,10 +22,86 @@ class dashboardAdmin extends StatefulWidget {
 class _dashboardAdminState extends State<dashboardAdmin> {
   int _currentIndex = 0;
 
-  // Sample data - replace with actual data from your backend
-  final int totalMembers = 200;
-  final int totalActiveMembers = 150;
-  final int totalExpiredMembers = 50;
+  // Variabel untuk menyimpan data statistik
+  int totalUsers = 0; // Ganti totalMembers menjadi totalUsers sesuai backend
+  int totalMemberships = 0; // Ganti totalActiveMembers
+  int totalTrainings = 0; // Ganti totalExpiredMembers
+  bool _isLoading = true; // State untuk loading data
+
+  // TODO: Ganti dengan URL dasar backend Anda
+  final String _baseUrl = 'http://localhost:3000/API'; // Contoh: 'http://192.168.1.5:3000/API'
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchAdminDashboardData(); // Panggil fungsi untuk mengambil data saat initState
+  }
+
+  // Fungsi untuk mengambil data dari backend
+  Future<void> _fetchAdminDashboardData() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token'); // Ambil token dari SharedPreferences
+
+      if (token == null) {
+        // Handle jika token tidak ada, mungkin redirect ke login page
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(content: Text('Authentication token not found. Please log in again.')),
+        );
+        // Contoh: Navigator.pushReplacementNamed(context, '/login');
+        return;
+      }
+
+      final response = await http.get(
+        Uri.parse('$_baseUrl/admin/dashboard'),
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Authorization': 'Bearer $token', // Kirim token di header Authorization
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = json.decode(response.body);
+        final List<dynamic> rows = responseData['rows'];
+
+        if (rows.isNotEmpty) {
+          setState(() {
+            totalUsers = rows[0]['users'] ?? 0;
+            totalMemberships = rows[0]['user_memberships'] ?? 0;
+            totalTrainings = rows[0]['user_trainings'] ?? 0;
+          });
+        }
+        print('Dashboard data fetched: $responseData');
+      } else if (response.statusCode == 401 || response.statusCode == 403) {
+         // Token invalid atau tidak memiliki akses
+         final responseBody = json.decode(response.body);
+         ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text(responseBody['message'] ?? 'Unauthorized or forbidden.')),
+         );
+         // Redirect to login page
+         // Navigator.pushReplacementNamed(context, '/login');
+      }
+       else {
+        final responseBody = json.decode(response.body);
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text(responseBody['message'] ?? 'Failed to load dashboard data.')),
+        );
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Error fetching dashboard data: $e')),
+      );
+      print('Error fetching dashboard data: $e');
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
 
   void _navigateToPage(int index) {
     setState(() {
@@ -31,71 +110,34 @@ class _dashboardAdminState extends State<dashboardAdmin> {
 
     switch (index) {
       case 0:
-        _navigateToDashboardpPage();
+        // Cukup pop jika kita sudah di dashboard, atau push replacement jika ingin merefresh
+        // Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const dashboardAdmin()));
         break;
       case 1:
-        _navigateToMembershipPage();
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const MembershipPage()),
+        );
         break;
       case 2:
-        _navigateToTrainingPage();
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const TrainingPage()),
+        );
         break;
       case 3:
-        _navigateToTrainerPage();
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const TrainerPage()),
+        );
         break;
       case 4:
-        _navigateToMemberPage();
+        Navigator.push(
+          context,
+          MaterialPageRoute(builder: (context) => const memberPage()),
+        );
         break;
     }
-  }
-  
-  void _navigateToDashboardpPage() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const dashboardAdmin()),
-    );
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Navigate to dashboard Page')),
-    );
-  }
-
-  void _navigateToMembershipPage() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const MembershipPage()),
-    );
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Navigate to Membership Page')),
-    );
-  }
-
-  void _navigateToTrainingPage() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const TrainingPage()),
-    );
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Navigate to Training Page')),
-    );
-  }
-
-  void _navigateToTrainerPage() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const TrainerPage()),
-    );
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Navigate to Trainer Page')),
-    );
-  }
-
-  void _navigateToMemberPage() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const memberPage()),
-    );
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Navigate to Member Page')),
-    );
   }
 
   @override
@@ -147,40 +189,42 @@ class _dashboardAdminState extends State<dashboardAdmin> {
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(24),
-                child: Column(
-                  children: [
-                    const SizedBox(height: 20),
-                    
-                    // Statistics Cards
-                    _buildStatCard(
-                      'Total Member',
-                      totalMembers.toString(),
-                      Icons.people,
-                    ),
-                    
-                    const SizedBox(height: 16),
-                    
-                    _buildStatCard(
-                      'Total Active Member',
-                      totalActiveMembers.toString(),
-                      Icons.people_alt,
-                    ),
-                    
-                    const SizedBox(height: 16),
-                    
-                    _buildStatCard(
-                      'Total Expired Member',
-                      totalExpiredMembers.toString(),
-                      Icons.people_outline,
-                    ),
-                    
-                    const Spacer(),
-                  ],
-                ),
+                child: _isLoading
+                    ? const Center(child: CircularProgressIndicator(color: Color(0xFFE8D864))) // Loading indicator
+                    : Column(
+                        children: [
+                          const SizedBox(height: 20),
+
+                          // Statistics Cards
+                          _buildStatCard(
+                            'Total Users', // Diperbarui dari 'Total Member'
+                            totalUsers.toString(),
+                            Icons.people,
+                          ),
+
+                          const SizedBox(height: 16),
+
+                          _buildStatCard(
+                            'Memberships', // Diperbarui dari 'Total Active Member'
+                            totalMemberships.toString(),
+                            Icons.card_membership, // Ganti ikon jika lebih sesuai
+                          ),
+
+                          const SizedBox(height: 16),
+
+                          _buildStatCard(
+                            'Trainings Taken', // Diperbarui dari 'Total Expired Member'
+                            totalTrainings.toString(),
+                            Icons.fitness_center, // Ganti ikon jika lebih sesuai
+                          ),
+
+                          const Spacer(),
+                        ],
+                      ),
               ),
             ),
 
-            // Bottom Navigation
+            // Bottom Navigation (tidak berubah)
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               child: Row(
@@ -280,8 +324,8 @@ class _dashboardAdminState extends State<dashboardAdmin> {
         width: 56,
         height: 56,
         decoration: BoxDecoration(
-          color: isActive 
-              ? const Color(0xFF00B894) 
+          color: isActive
+              ? const Color(0xFF00B894)
               : const Color(0xFF2D2D2D),
           borderRadius: BorderRadius.circular(16),
         ),

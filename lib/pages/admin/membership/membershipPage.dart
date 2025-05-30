@@ -5,6 +5,9 @@ import 'package:gymbroo/pages/admin/membership/membershipCreate.dart';
 import 'package:gymbroo/pages/admin/membership/membershipEdit.dart';
 import 'package:gymbroo/pages/admin/trainer/trainerPage.dart';
 import 'package:gymbroo/pages/admin/training/trainingPage.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class MembershipPage extends StatefulWidget {
   const MembershipPage({super.key});
@@ -14,155 +17,67 @@ class MembershipPage extends StatefulWidget {
 }
 
 class _MembershipPageState extends State<MembershipPage> {
-  int _currentIndex = 1; // Set to 1 since this is the membership page
+  int _currentIndex = 1;
 
-  // Sample membership data - replace with actual data from your backend
-  final List<Map<String, dynamic>> membershipData = [
-    {
-      'no': 1,
-      'membershipType': 'Premium Gold',
-      'price': 'Rp 500.000',
-      'time': '12 Months'
-    },
-    {
-      'no': 2,
-      'membershipType': 'Premium Silver',
-      'price': 'Rp 300.000',
-      'time': '6 Months'
-    },
-    {
-      'no': 3,
-      'membershipType': 'Basic Plan',
-      'price': 'Rp 150.000',
-      'time': '3 Months'
-    },
-    {
-      'no': 4,
-      'membershipType': 'Student Plan',
-      'price': 'Rp 100.000',
-      'time': '1 Month'
-    },
-    {
-      'no': 5,
-      'membershipType': 'VIP Platinum',
-      'price': 'Rp 800.000',
-      'time': '12 Months'
-    },
-    {
-      'no': 6,
-      'membershipType': 'Weekly Pass',
-      'price': 'Rp 50.000',
-      'time': '1 Week'
-    },
-    {
-      'no': 7,
-      'membershipType': 'Day Pass',
-      'price': 'Rp 25.000',
-      'time': '1 Day'
-    },
-    {
-      'no': 8,
-      'membershipType': 'Corporate Plan',
-      'price': 'Rp 2.000.000',
-      'time': '12 Months'
-    },
-  ];
+  List<dynamic> membershipData = [];
+  bool _isLoading = true;
+  final String _baseUrl = 'http://localhost:3000/API'; // Your backend URL
 
-  void _navigateToPage(int index) {
+  @override
+  void initState() {
+    super.initState();
+    _fetchMemberships(); // Fetch data when the page initializes
+  }
+
+  // Function to fetch membership list from the backend
+  Future<void> _fetchMemberships() async {
     setState(() {
-      _currentIndex = index;
+      _isLoading = true;
     });
 
-    switch (index) {
-      case 0:
-        _navigateToDashboardpPage();
-        break;
-      case 1:
-        _navigateToMembershipPage();
-        break;
-      case 2:
-        _navigateToTrainingPage();
-        break;
-      case 3:
-        _navigateToTrainerPage();
-        break;
-      case 4:
-        _navigateToMemberPage();
-        break;
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      if (token == null) {
+        _showSnackBar('Authentication token not found. Please log in again.', Colors.red);
+        // Optionally, navigate to login page:
+        // Navigator.pushReplacementNamed(context, '/login');
+        return;
+      }
+
+      final response = await http.get(
+        Uri.parse('$_baseUrl/admin/memberships'),
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final List<dynamic> fetchedData = json.decode(response.body);
+        setState(() {
+          membershipData = fetchedData;
+        });
+      } else if (response.statusCode == 401 || response.statusCode == 403) {
+        final responseBody = json.decode(response.body);
+        _showSnackBar(responseBody['message'] ?? 'Unauthorized or forbidden.', Colors.red);
+      } else {
+        final responseBody = json.decode(response.body);
+        _showSnackBar(responseBody['message'] ?? 'Failed to load memberships.', Colors.red);
+      }
+    } catch (e) {
+      _showSnackBar('Error fetching memberships: $e', Colors.red);
+      print('Error fetching memberships: $e');
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
     }
   }
-  
-  void _navigateToDashboardpPage() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const dashboardAdmin()),
-    );
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Navigate to dashboard Page')),
-    );
-  }
 
-  void _navigateToMembershipPage() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const MembershipPage()),
-    );
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Navigate to Membership Page')),
-    );
-  }
-
-  void _navigateToTrainingPage() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const TrainingPage()),
-    );
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Navigate to Training Page')),
-    );
-  }
-
-  void _navigateToTrainerPage() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const TrainerPage()),
-    );
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Navigate to Trainer Page')),
-    );
-  }
-
-  void _navigateToMemberPage() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const memberPage()),
-    );
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Navigate to Member Page')),
-    );
-  }
-
-  void _createMembership() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => CreateMembershipPage()),
-    );
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Create new membership')),
-    );
-  }
-
-  void _editMembership(int index) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => EditMembershipPage()),
-    );
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Edit membership: ${membershipData[index]['membershipType']}')),
-    );
-  }
-
-  void _deleteMembership(int index) {
+  // Function to delete a membership
+  Future<void> _deleteMembership(int membershipId, int index) async {
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -172,9 +87,9 @@ class _MembershipPageState extends State<MembershipPage> {
             'Delete Membership',
             style: TextStyle(color: Colors.white),
           ),
-          content: Text(
-            'Are you sure you want to delete ${membershipData[index]['membershipType']}?',
-            style: const TextStyle(color: Colors.white70),
+          content: const Text(
+            'Are you sure you want to delete this membership?',
+            style: TextStyle(color: Colors.white70),
           ),
           actions: [
             TextButton(
@@ -185,14 +100,47 @@ class _MembershipPageState extends State<MembershipPage> {
               ),
             ),
             TextButton(
-              onPressed: () {
+              onPressed: () async {
+                Navigator.of(context).pop(); // Close the dialog
                 setState(() {
-                  membershipData.removeAt(index);
+                  _isLoading = true; // Show loading while deleting
                 });
-                Navigator.of(context).pop();
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Membership deleted')),
-                );
+
+                try {
+                  final prefs = await SharedPreferences.getInstance();
+                  final token = prefs.getString('token');
+
+                  if (token == null) {
+                    _showSnackBar('Authentication token not found. Please log in again.', Colors.red);
+                    return;
+                  }
+
+                  final response = await http.delete(
+                    Uri.parse('$_baseUrl/admin/memberships/$membershipId'),
+                    headers: {
+                      'Authorization': 'Bearer $token',
+                    },
+                  );
+
+                  if (response.statusCode == 200) {
+                    _showSnackBar('Membership deleted successfully', Colors.green);
+                    // Refresh the membership list after deletion
+                    _fetchMemberships();
+                  } else if (response.statusCode == 401 || response.statusCode == 403) {
+                    final responseBody = json.decode(response.body);
+                    _showSnackBar(responseBody['message'] ?? 'Unauthorized or forbidden.', Colors.red);
+                  } else {
+                    final responseBody = json.decode(response.body);
+                    _showSnackBar(responseBody['message'] ?? 'Failed to delete membership.', Colors.red);
+                  }
+                } catch (e) {
+                  _showSnackBar('Error deleting membership: $e', Colors.red);
+                  print('Error deleting membership: $e');
+                } finally {
+                  setState(() {
+                    _isLoading = false; // Hide loading
+                  });
+                }
               },
               child: const Text(
                 'Delete',
@@ -203,6 +151,70 @@ class _MembershipPageState extends State<MembershipPage> {
         );
       },
     );
+  }
+
+  void _showSnackBar(String message, Color color) {
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(content: Text(message), backgroundColor: color),
+    );
+  }
+
+  void _navigateToPage(int index) {
+    if (_currentIndex == index) return;
+
+    setState(() {
+      _currentIndex = index;
+    });
+
+    switch (index) {
+      case 0:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const dashboardAdmin()),
+        );
+        break;
+      case 1:
+        // Already on MembershipPage
+        break;
+      case 2:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const TrainingPage()),
+        );
+        break;
+      case 3:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const TrainerPage()),
+        );
+        break;
+      case 4:
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const memberPage()),
+        );
+        break;
+    }
+  }
+
+  void _createMembership() async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const CreateMembershipPage()),
+    );
+    if (result == true) { // If returned with success indication
+      _fetchMemberships(); // Refresh data
+    }
+  }
+
+  void _editMembership(Map<String, dynamic> membership) async {
+    final result = await Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => EditMembershipPage(membership: membership)),
+    );
+    if (result == true) { // If returned with success indication
+      _fetchMemberships(); // Refresh data
+    }
   }
 
   @override
@@ -227,16 +239,16 @@ class _MembershipPageState extends State<MembershipPage> {
                   bottomRight: Radius.circular(20),
                 ),
               ),
-              child: Row(
+              child: const Row(
                 children: [
                   Icon(
                     Icons.card_membership,
                     color: Colors.white,
                     size: 28,
                   ),
-                  const SizedBox(width: 12),
-                  const Text(
-                    'Membership type',
+                  SizedBox(width: 12),
+                  Text(
+                    'Membership Type',
                     style: TextStyle(
                       color: Colors.white,
                       fontSize: 24,
@@ -282,112 +294,33 @@ class _MembershipPageState extends State<MembershipPage> {
                     color: const Color(0xFF1A1A1A),
                     borderRadius: BorderRadius.circular(12),
                   ),
-                  child: Column(
-                    children: [
-                      // Table Header
-                      Container(
-                        padding: const EdgeInsets.all(16),
-                        decoration: const BoxDecoration(
-                          gradient: LinearGradient(
-                            colors: [Color(0xFF007662), Color(0xFF00DCB7)],
-                            begin: Alignment.centerLeft,
-                            end: Alignment.centerRight,
-                          ),
-                          borderRadius: BorderRadius.only(
-                            topLeft: Radius.circular(12),
-                            topRight: Radius.circular(12),
-                          ),
-                        ),
-                        child: const Row(
+                  child: _isLoading
+                      ? const Center(child: CircularProgressIndicator(color: Color(0xFFE8D864)))
+                      : Column(
                           children: [
-                            Expanded(
-                              flex: 1,
-                              child: Text(
-                                'No',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                            Expanded(
-                              flex: 3,
-                              child: Text(
-                                'Membership Type',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                            Expanded(
-                              flex: 2,
-                              child: Text(
-                                'Price',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                            Expanded(
-                              flex: 2,
-                              child: Text(
-                                'Time',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                            Expanded(
-                              flex: 2,
-                              child: Text(
-                                'Action',
-                                style: TextStyle(
-                                  color: Colors.white,
-                                  fontWeight: FontWeight.bold,
-                                  fontSize: 14,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ),
-
-                      // Table Data
-                      Expanded(
-                        child: ListView.builder(
-                          itemCount: membershipData.length,
-                          itemBuilder: (context, index) {
-                            final item = membershipData[index];
-                            return Container(
+                            // Table Header
+                            Container(
                               padding: const EdgeInsets.all(16),
-                              decoration: BoxDecoration(
-                                border: Border(
-                                  bottom: BorderSide(
-                                    color: Colors.grey.withOpacity(0.2),
-                                    width: 1,
-                                  ),
+                              decoration: const BoxDecoration(
+                                gradient: LinearGradient(
+                                  colors: [Color(0xFF007662), Color(0xFF00DCB7)],
+                                  begin: Alignment.centerLeft,
+                                  end: Alignment.centerRight,
+                                ),
+                                borderRadius: BorderRadius.only(
+                                  topLeft: Radius.circular(12),
+                                  topRight: Radius.circular(12),
                                 ),
                               ),
-                              child: Row(
+                              child: const Row(
                                 children: [
                                   Expanded(
                                     flex: 1,
                                     child: Text(
-                                      item['no'].toString(),
-                                      style: const TextStyle(
+                                      'No',
+                                      style: TextStyle(
                                         color: Colors.white,
+                                        fontWeight: FontWeight.bold,
                                         fontSize: 14,
                                       ),
                                       textAlign: TextAlign.center,
@@ -396,9 +329,10 @@ class _MembershipPageState extends State<MembershipPage> {
                                   Expanded(
                                     flex: 3,
                                     child: Text(
-                                      item['membershipType'],
-                                      style: const TextStyle(
+                                      'Membership Type',
+                                      style: TextStyle(
                                         color: Colors.white,
+                                        fontWeight: FontWeight.bold,
                                         fontSize: 14,
                                       ),
                                       textAlign: TextAlign.center,
@@ -407,9 +341,10 @@ class _MembershipPageState extends State<MembershipPage> {
                                   Expanded(
                                     flex: 2,
                                     child: Text(
-                                      item['price'],
-                                      style: const TextStyle(
+                                      'Price',
+                                      style: TextStyle(
                                         color: Colors.white,
+                                        fontWeight: FontWeight.bold,
                                         fontSize: 14,
                                       ),
                                       textAlign: TextAlign.center,
@@ -418,9 +353,10 @@ class _MembershipPageState extends State<MembershipPage> {
                                   Expanded(
                                     flex: 2,
                                     child: Text(
-                                      item['time'],
-                                      style: const TextStyle(
+                                      'Duration',
+                                      style: TextStyle(
                                         color: Colors.white,
+                                        fontWeight: FontWeight.bold,
                                         fontSize: 14,
                                       ),
                                       textAlign: TextAlign.center,
@@ -428,43 +364,128 @@ class _MembershipPageState extends State<MembershipPage> {
                                   ),
                                   Expanded(
                                     flex: 2,
-                                    child: Row(
-                                      mainAxisAlignment: MainAxisAlignment.center,
-                                      children: [
-                                        GestureDetector(
-                                          onTap: () => _editMembership(index),
-                                          child: Container(
-                                            padding: const EdgeInsets.all(4),
-                                            child: const Icon(
-                                              Icons.edit,
-                                              color: Color(0xFF00DCB7),
-                                              size: 18,
-                                            ),
-                                          ),
-                                        ),
-                                        const SizedBox(width: 8),
-                                        GestureDetector(
-                                          onTap: () => _deleteMembership(index),
-                                          child: Container(
-                                            padding: const EdgeInsets.all(4),
-                                            child: const Icon(
-                                              Icons.delete,
-                                              color: Colors.red,
-                                              size: 18,
-                                            ),
-                                          ),
-                                        ),
-                                      ],
+                                    child: Text(
+                                      'Action',
+                                      style: TextStyle(
+                                        color: Colors.white,
+                                        fontWeight: FontWeight.bold,
+                                        fontSize: 14,
+                                      ),
+                                      textAlign: TextAlign.center,
                                     ),
                                   ),
                                 ],
                               ),
-                            );
-                          },
+                            ),
+
+                            // Table Data
+                            Expanded(
+                              child: membershipData.isEmpty
+                                  ? const Center(
+                                      child: Text(
+                                        'No membership data.',
+                                        style: TextStyle(color: Colors.white70),
+                                      ),
+                                    )
+                                  : ListView.builder(
+                                      itemCount: membershipData.length,
+                                      itemBuilder: (context, index) {
+                                        final item = membershipData[index];
+                                        return Container(
+                                          padding: const EdgeInsets.all(16),
+                                          decoration: BoxDecoration(
+                                            border: Border(
+                                              bottom: BorderSide(
+                                                color: Colors.grey.withOpacity(0.2),
+                                                width: 1,
+                                              ),
+                                            ),
+                                          ),
+                                          child: Row(
+                                            children: [
+                                              Expanded(
+                                                flex: 1,
+                                                child: Text(
+                                                  (index + 1).toString(),
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 14,
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                              ),
+                                              Expanded(
+                                                flex: 3,
+                                                child: Text(
+                                                  item['membership_type'] ?? '-',
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 14,
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                              ),
+                                              Expanded(
+                                                flex: 2,
+                                                child: Text(
+                                                  'Rp ${item['price']?.toString() ?? '-'}',
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 14,
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                              ),
+                                              Expanded(
+                                                flex: 2,
+                                                child: Text(
+                                                  '${item['membership_duration']?.toString() ?? '-'} Months',
+                                                  style: const TextStyle(
+                                                    color: Colors.white,
+                                                    fontSize: 14,
+                                                  ),
+                                                  textAlign: TextAlign.center,
+                                                ),
+                                              ),
+                                              Expanded(
+                                                flex: 2,
+                                                child: Row(
+                                                  mainAxisAlignment: MainAxisAlignment.center,
+                                                  children: [
+                                                    GestureDetector(
+                                                      onTap: () => _editMembership(item),
+                                                      child: Container(
+                                                        padding: const EdgeInsets.all(4),
+                                                        child: const Icon(
+                                                          Icons.edit,
+                                                          color: Color(0xFF00DCB7),
+                                                          size: 18,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                    const SizedBox(width: 8),
+                                                    GestureDetector(
+                                                      onTap: () => _deleteMembership(item['id'], index),
+                                                      child: Container(
+                                                        padding: const EdgeInsets.all(4),
+                                                        child: const Icon(
+                                                          Icons.delete,
+                                                          color: Colors.red,
+                                                          size: 18,
+                                                        ),
+                                                      ),
+                                                    ),
+                                                  ],
+                                                ),
+                                              ),
+                                            ],
+                                          ),
+                                        );
+                                      },
+                                    ),
+                            ),
+                          ],
                         ),
-                      ),
-                    ],
-                  ),
                 ),
               ),
             ),
@@ -522,8 +543,8 @@ class _MembershipPageState extends State<MembershipPage> {
         width: 56,
         height: 56,
         decoration: BoxDecoration(
-          color: isActive 
-              ? const Color(0xFF00B894) 
+          color: isActive
+              ? const Color(0xFF00B894)
               : const Color(0xFF2D2D2D),
           borderRadius: BorderRadius.circular(16),
         ),

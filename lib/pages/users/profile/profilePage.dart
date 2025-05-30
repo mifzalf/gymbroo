@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:gymbroo/pages/users/profile/editProfile.dart'; 
+import 'package:gymbroo/pages/users/membershipPage.dart';
+import 'package:gymbroo/pages/users/profile/dashboardPage.dart';
+import 'package:gymbroo/pages/users/profile/editProfile.dart';
+import 'package:gymbroo/pages/users/training/trainingPage.dart'; 
 
 class ProfileUser extends StatefulWidget {
   final String userName;
@@ -63,31 +66,44 @@ class _ProfileUserState extends State<ProfileUser> {
         break;
     }
   }
-
+  
   void _navigateToDashboardPage() {
-    // Navigator.push(context, MaterialPageRoute(builder: (context) => const DashboardUserPage())); // Ganti dengan halaman dashboard user Anda
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const DashboardUser()),
+    );
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Navigate to Dashboard Page')),
     );
   }
 
   void _navigateToMembershipPage() {
-    // Navigator.push(context, MaterialPageRoute(builder: (context) => const MembershipUserPage())); // Ganti dengan halaman membership user Anda
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const MembershipUser()),
+    );
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Navigate to Membership Page')),
     );
   }
 
   void _navigateToTrainingPage() {
-    // Navigator.push(context, MaterialPageRoute(builder: (context) => const TrainingUserPage())); // Ganti dengan halaman training user Anda
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const TrainingUser()),
+    );
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Navigate to Training Page')),
     );
   }
 
   void _navigateToProfilePage() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const ProfileUser()),
+    );
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('You are already on Profile Page')),
+      const SnackBar(content: Text('Navigate to Profile Page')),
     );
   }
 

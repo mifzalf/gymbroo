@@ -468,6 +468,7 @@ class _DashboardUserState extends State<DashboardUser> {
               
               const SizedBox(height: 12),
               
+              // Weeks left aligned to right
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [

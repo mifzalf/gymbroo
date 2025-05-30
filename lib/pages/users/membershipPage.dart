@@ -1,4 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:gymbroo/pages/users/profile/dashboardPage.dart';
+import 'package:gymbroo/pages/users/profile/profilePage.dart';
+import 'package:gymbroo/pages/users/training/trainingPage.dart';
 
 class MembershipUser extends StatefulWidget {
   final String userName;
@@ -78,7 +81,7 @@ class _MembershipUserState extends State<MembershipUser> {
         _navigateToDashboardPage();
         break;
       case 1:
-        // Already on membership page, do nothing
+        _navigateToMembershipPage();
         break;
       case 2:
         _navigateToTrainingPage();
@@ -90,16 +93,40 @@ class _MembershipUserState extends State<MembershipUser> {
   }
   
   void _navigateToDashboardPage() {
-    Navigator.pop(context);
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const DashboardUser()),
+    );
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Navigate to Dashboard Page')),
+    );
+  }
+
+  void _navigateToMembershipPage() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const MembershipUser()),
+    );
+    ScaffoldMessenger.of(context).showSnackBar(
+      const SnackBar(content: Text('Navigate to Membership Page')),
+    );
   }
 
   void _navigateToTrainingPage() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const TrainingUser()),
+    );
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Navigate to Training Page')),
     );
   }
 
   void _navigateToProfilePage() {
+    Navigator.push(
+      context,
+      MaterialPageRoute(builder: (context) => const ProfileUser()),
+    );
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Navigate to Profile Page')),
     );

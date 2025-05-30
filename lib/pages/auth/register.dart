@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+import 'dart:io';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -13,10 +17,13 @@ class _RegisterPageState extends State<RegisterPage> {
   final _usernameController = TextEditingController();
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
-  
-  bool _isProfileImageSelected = false;
+
+  File? _profileImage;
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
+  bool _isLoading = false;
+
+  final String _baseUrl = 'http://localhost:3000/API'; // URL backend Anda
 
   @override
   void dispose() {
@@ -27,39 +34,80 @@ class _RegisterPageState extends State<RegisterPage> {
     super.dispose();
   }
 
-  void _selectProfileImage() {
-    // Untuk sementara hanya mengubah state
-    // Implementasi image picker akan ditambahkan setelah package diinstall
-    setState(() {
-      _isProfileImageSelected = !_isProfileImageSelected;
-    });
-    
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('Image picker will be implemented after adding the package'),
-        duration: Duration(seconds: 2),
-      ),
-    );
+  Future<void> _selectProfileImage() async {
+    final picker = ImagePicker();
+    final pickedFile = await picker.pickImage(source: ImageSource.gallery);
+
+    if (pickedFile != null) {
+      setState(() {
+        _profileImage = File(pickedFile.path);
+      });
+    }
   }
 
-  void _register() {
+  void _register() async {
     if (_formKey.currentState!.validate()) {
-      // Implement your registration logic here
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Registration successful!'),
-          backgroundColor: Colors.green,
-        ),
-      );
-      
-      // Navigate to home page or login page after successful registration
-      // Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => HomePage()));
+      setState(() {
+        _isLoading = true;
+      });
+
+      try {
+        var request = http.MultipartRequest(
+          'POST',
+          Uri.parse('$_baseUrl/register'),
+        );
+
+        request.fields['username'] = _usernameController.text;
+        request.fields['email'] = _emailController.text;
+        request.fields['password'] = _passwordController.text;
+        request.fields['confirmationPassword'] = _confirmPasswordController.text;
+
+        if (_profileImage != null) {
+          request.files.add(
+            await http.MultipartFile.fromPath(
+              'profile_photo',
+              _profileImage!.path,
+            ),
+          );
+        }
+
+        var response = await request.send();
+
+        if (response.statusCode == 201) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('Registration successful!'),
+              backgroundColor: Colors.green,
+            ),
+          );
+          _navigateToLogin();
+        } else {
+          final responseBody = await response.stream.bytesToString();
+          final decodedBody = json.decode(responseBody);
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text(decodedBody['message'] ?? 'Registration failed. Please try again.'),
+              backgroundColor: Colors.red,
+            ),
+          );
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('An error occurred: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      } finally {
+        setState(() {
+          _isLoading = false;
+        });
+      }
     }
   }
 
   void _navigateToLogin() {
-    Navigator.pop(context); // Go back to login page
-    // Or use: Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => LoginPage()));
+    Navigator.pop(context);
   }
 
   @override
@@ -75,8 +123,7 @@ class _RegisterPageState extends State<RegisterPage> {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 const SizedBox(height: 40),
-                
-                // Title
+
                 RichText(
                   text: TextSpan(
                     style: const TextStyle(
@@ -95,16 +142,16 @@ class _RegisterPageState extends State<RegisterPage> {
                       const TextSpan(
                         text: 'your new\nAccount',
                         style: TextStyle(
-                          color: Color(0xFF007662), // Teal color
+                          color: Color(0xFF007662),
                         ),
                       ),
                     ],
                   ),
                 ),
-                
+
                 const SizedBox(height: 50),
-                
-                // Profile Image Picker
+
+                // Profile Image Picker (UI tidak berubah)
                 Center(
                   child: GestureDetector(
                     onTap: _selectProfileImage,
@@ -112,23 +159,31 @@ class _RegisterPageState extends State<RegisterPage> {
                       width: 100,
                       height: 100,
                       decoration: BoxDecoration(
-                        color: _isProfileImageSelected 
-                            ? const Color(0xFF4ECDC4) 
+                        color: _profileImage != null
+                            ? const Color(0xFF4ECDC4)
                             : const Color(0xFF2D2D2D),
                         shape: BoxShape.circle,
+                        image: _profileImage != null
+                            ? DecorationImage(
+                                image: FileImage(_profileImage!),
+                                fit: BoxFit.cover,
+                              )
+                            : null,
                       ),
-                      child: Icon(
-                        _isProfileImageSelected ? Icons.person : Icons.add,
-                        color: Colors.white,
-                        size: 30,
-                      ),
+                      child: _profileImage == null
+                          ? const Icon(
+                              Icons.add_a_photo,
+                              color: Colors.white,
+                              size: 30,
+                            )
+                          : null,
                     ),
                   ),
                 ),
-                
+
                 const SizedBox(height: 40),
-                
-                // Email Field
+
+                // Email Field (tidak berubah)
                 Container(
                   decoration: BoxDecoration(
                     color: const Color(0xFF2D2D2D),
@@ -156,10 +211,10 @@ class _RegisterPageState extends State<RegisterPage> {
                     },
                   ),
                 ),
-                
+
                 const SizedBox(height: 20),
-                
-                // Username Field
+
+                // Username Field (Validasi dipermudah untuk mengizinkan spasi)
                 Container(
                   decoration: BoxDecoration(
                     color: const Color(0xFF2D2D2D),
@@ -179,17 +234,19 @@ class _RegisterPageState extends State<RegisterPage> {
                       if (value == null || value.isEmpty) {
                         return 'Please enter your username';
                       }
-                      if (value.length < 3) {
-                        return 'Username must be at least 3 characters';
+                      // Hanya validasi panjang yang dipertahankan
+                      if (value.length < 1 || value.length > 30) {
+                        return 'Username must be between 1 and 30 characters.';
                       }
+                      // Validasi ketat lainnya dihapus agar sesuai dengan backend
                       return null;
                     },
                   ),
                 ),
-                
+
                 const SizedBox(height: 20),
-                
-                // Password Field
+
+                // Password Field (tidak berubah)
                 Container(
                   decoration: BoxDecoration(
                     color: const Color(0xFF2D2D2D),
@@ -222,16 +279,25 @@ class _RegisterPageState extends State<RegisterPage> {
                         return 'Please enter your password';
                       }
                       if (value.length < 6) {
-                        return 'Password must be at least 6 characters';
+                        return 'Password must be at least 6 characters.';
+                      }
+                      if (!RegExp(r'[A-Z]').hasMatch(value)) {
+                        return 'Password must have at least one uppercase letter.';
+                      }
+                      if (!RegExp(r'[a-z]').hasMatch(value)) {
+                        return 'Password must have at least one lowercase letter.';
+                      }
+                      if (!RegExp(r'\d').hasMatch(value)) {
+                        return 'Password must contain at least one number.';
                       }
                       return null;
                     },
                   ),
                 ),
-                
+
                 const SizedBox(height: 20),
-                
-                // Confirm Password Field
+
+                // Confirm Password Field (tidak berubah)
                 Container(
                   decoration: BoxDecoration(
                     color: const Color(0xFF2D2D2D),
@@ -270,15 +336,15 @@ class _RegisterPageState extends State<RegisterPage> {
                     },
                   ),
                 ),
-                
+
                 const SizedBox(height: 40),
-                
-                // Register Button
+
+                // Register Button (tidak berubah)
                 SizedBox(
                   width: double.infinity,
                   height: 50,
                   child: ElevatedButton(
-                    onPressed: _register,
+                    onPressed: _isLoading ? null : _register,
                     style: ElevatedButton.styleFrom(
                       backgroundColor: const Color(0xFFE8D864),
                       foregroundColor: Colors.black,
@@ -287,24 +353,28 @@ class _RegisterPageState extends State<RegisterPage> {
                       ),
                       elevation: 0,
                     ),
-                    child: const Text(
-                      'Register',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
+                    child: _isLoading
+                        ? const CircularProgressIndicator(
+                            color: Colors.black,
+                          )
+                        : const Text(
+                            'Register',
+                            style: TextStyle(
+                              fontSize: 16,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
                   ),
                 ),
-                
+
                 const SizedBox(height: 60),
-                
-                // Bottom Navigation
+
+                // Bottom Navigation (tidak berubah)
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(20),
                   decoration: BoxDecoration(
-                    color: const Color(0xFF007662), // Teal color
+                    color: const Color(0xFF007662),
                     borderRadius: BorderRadius.circular(12),
                   ),
                   child: Row(
@@ -316,7 +386,7 @@ class _RegisterPageState extends State<RegisterPage> {
                           width: 48,
                           height: 48,
                           decoration: BoxDecoration(
-                            color: const Color(0xFFE8D864), // Yellow color
+                            color: const Color(0xFFE8D864),
                             borderRadius: BorderRadius.circular(24),
                           ),
                           child: const Icon(
@@ -339,7 +409,7 @@ class _RegisterPageState extends State<RegisterPage> {
                           Text(
                             "Account? Sign in Now",
                             style: TextStyle(
-                              color: Color(0xFFE8D864), // Yellow color
+                              color: Color(0xFFE8D864),
                               fontSize: 16,
                               fontWeight: FontWeight.bold,
                             ),

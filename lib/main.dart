@@ -37,7 +37,7 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const DashboardUser(),
+      home: const StartPage(),
       
     );
   }
