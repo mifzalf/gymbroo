@@ -2,17 +2,23 @@ import 'package:flutter/material.dart';
 import 'package:gymbroo/pages/users/membershipPage.dart';
 import 'package:gymbroo/pages/users/profile/profilePage.dart';
 import 'package:gymbroo/pages/users/training/trainingPage.dart';
+import 'package:http/http.dart' as http; // Import http
+import 'dart:convert'; // Import json
+import 'package:shared_preferences/shared_preferences.dart'; // Import SharedPreferences
+import 'package:cached_network_image/cached_network_image.dart'; // Import cached_network_image
 
 class DashboardUser extends StatefulWidget {
+  // Properti ini sekarang mungkin tidak diperlukan lagi karena data akan diambil internal
+  // Namun, tetap bisa dipertahankan sebagai fallback atau untuk parameter awal jika ada
   final String userName;
   final String userPhotoUrl;
   final String membershipStatus;
-  
+
   const DashboardUser({
     super.key,
-    this.userName = "Rahadya Suset",
-    this.userPhotoUrl = "", // Default empty, will show placeholder
-    this.membershipStatus = "Active Member",
+    this.userName = "Loading...",
+    this.userPhotoUrl = "",
+    this.membershipStatus = "Loading...",
   });
 
   @override
@@ -22,100 +28,158 @@ class DashboardUser extends StatefulWidget {
 class _DashboardUserState extends State<DashboardUser> {
   int _currentIndex = 0;
 
-  // Sample membership data - replace with actual data from backend
-  final String membershipType = "Premium Membership";
-  final int remainingDays = 78;
-  final String membershipBackground = "assets/images/membership_bg_dummy.jpg"; // Replace with actual asset
+  // Data yang akan diisi dari backend
+  String _currentUserName = "Loading...";
+  String _currentUserPhotoUrl = "";
+  String _currentMembershipStatus = "Loading..."; // Status komprehensif membership
+  String _membershipType = "No Membership"; // Jenis membership
+  int _remainingDays = 0; // Sisa hari membership
+  String _membershipBackground = "assets/images/membership_bg_dummy.jpg"; // Background membership
+  List<dynamic> _userTrainings = []; // Daftar training yang diambil user
+  bool _isLoading = true; // State untuk loading keseluruhan halaman
 
-  // Sample training data - replace with actual data from backend
-  final List<Map<String, dynamic>> trainingList = [
-    {
-      'name': 'Regular Training',
-      'trainer': 'Jonito Seppu',
-      'time': '20:30 WIB',
-      'day': 'Selasa',
-      'weeksLeft': '3 week left',
-      'id': 1,
-    },
-    {
-      'name': 'Yoga Training',
-      'trainer': 'Aqil Prayuni',
-      'time': '20:30 WIB',
-      'day': 'Senin',
-      'weeksLeft': '3 week left',
-      'id': 2,
-    },
-  ];
+  final String _baseUrl = 'http://localhost:3000/API'; // URL backend Anda
+  final String _userImagePathPrefix = 'http://localhost:3000/images/users/'; // Prefix untuk foto profil user
+  final String _membershipImagePathPrefix = 'http://localhost:3000/images/memberships/'; // Prefix untuk gambar membership
+
+  @override
+  void initState() {
+    super.initState();
+    _fetchDashboardData(); // Panggil fungsi untuk mengambil data saat initState
+  }
+
+  // Fungsi untuk mengambil semua data dashboard user
+  Future<void> _fetchDashboardData() async {
+    setState(() {
+      _isLoading = true; // Set loading true saat memulai fetch
+    });
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      if (token == null) {
+        _showSnackBar('Authentication token not found. Please log in again.', Colors.red);
+        // Mungkin arahkan ke halaman login jika token tidak ada
+        // Navigator.pushReplacementNamed(context, '/login');
+        return;
+      }
+
+      final response = await http.get(
+        Uri.parse('$_baseUrl/user/dashboard'),
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = json.decode(response.body);
+
+        // --- Mengisi Data Profil ---
+        final List<dynamic> profileData = responseData['Profile'] ?? [];
+        if (profileData.isNotEmpty) {
+          final userProfile = profileData[0];
+          _currentUserName = userProfile['username'] ?? 'User';
+          // Pastikan URL gambar profil user terbentuk dengan benar
+          _currentUserPhotoUrl = (userProfile['profile_photo'] != null && userProfile['profile_photo'] != 'default.png')
+              ? _userImagePathPrefix + userProfile['profile_photo']
+              : ''; // Akan menampilkan avatar default jika kosong atau 'default.png'
+        }
+
+        // --- Mengisi Data Membership ---
+        final List<dynamic> membershipUsersData = responseData['membershipUsers'] ?? [];
+        if (membershipUsersData.isNotEmpty) {
+          final userMembership = membershipUsersData[0]; // Asumsi hanya ada satu membership aktif
+          _membershipType = userMembership['jenis_member'] ?? 'Active Member'; // Menggunakan 'jenis_member'
+          _remainingDays = userMembership['sisa_hari_member'] ?? 0; // Menggunakan 'sisa_hari_member'
+          // Pastikan URL gambar background membership terbentuk dengan benar
+          _membershipBackground = (userMembership['background_member'] != null && userMembership['background_member'] != 'default.png')
+              ? _membershipImagePathPrefix + userMembership['background_member']
+              : "assets/images/membership_bg_dummy.jpg"; // Default asset jika null/default.png
+
+          if (_remainingDays > 0) {
+            _currentMembershipStatus = 'Active Member (${_remainingDays} days left)';
+          } else {
+            _currentMembershipStatus = 'Membership Expired/None';
+          }
+        } else {
+          _currentMembershipStatus = 'No Active Membership';
+          _membershipType = 'No Membership';
+          _remainingDays = 0;
+          _membershipBackground = "assets/images/membership_bg_dummy.jpg"; // Pastikan default jika tidak ada membership
+        }
+
+        // --- Mengisi Data Training ---
+        _userTrainings = responseData['trainingUsers'] ?? [];
+
+        setState(() {
+          // UI akan diperbarui dengan data baru
+        });
+        _showSnackBar('Dashboard data loaded successfully!', Colors.green);
+
+      } else if (response.statusCode == 401 || response.statusCode == 403) {
+        final responseBody = json.decode(response.body);
+        _showSnackBar(responseBody['message'] ?? 'Unauthorized or forbidden.', Colors.red);
+        // Mungkin arahkan ke login jika token tidak valid
+      } else {
+        final responseBody = json.decode(response.body);
+        _showSnackBar(responseBody['message'] ?? 'Failed to load dashboard data.', Colors.red);
+      }
+    } catch (e) {
+      _showSnackBar('Error fetching dashboard data: $e', Colors.red);
+      print('Error fetching dashboard data: $e');
+    } finally {
+      setState(() {
+        _isLoading = false; // Set loading false setelah fetch selesai
+      });
+    }
+  }
+
+  void _showSnackBar(String message, Color color) {
+    if (mounted) { // Pastikan widget masih ada di tree sebelum menampilkan SnackBar
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message), backgroundColor: color),
+      );
+    }
+  }
 
   void _navigateToPage(int index) {
+    if (_currentIndex == index) return; // Jangan navigasi jika sudah di halaman yang sama
+
     setState(() {
       _currentIndex = index;
     });
 
+    // Menggunakan Navigator.pushReplacement untuk navigasi tab utama agar tidak menumpuk halaman
     switch (index) {
       case 0:
-        _navigateToDashboardPage();
+        // Sudah di DashboardUser, tidak perlu navigasi ulang
         break;
       case 1:
-        _navigateToMembershipPage();
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const MembershipUser()),
+        );
         break;
       case 2:
-        _navigateToTrainingPage();
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const TrainingUser()),
+        );
         break;
       case 3:
-        _navigateToProfilePage();
+        Navigator.pushReplacement(
+          context,
+          MaterialPageRoute(builder: (context) => const ProfileUser()),
+        );
         break;
     }
   }
-  
-  void _navigateToDashboardPage() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const DashboardUser()),
-    );
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Navigate to Dashboard Page')),
-    );
-  }
-
-  void _navigateToMembershipPage() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const MembershipUser()),
-    );
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Navigate to Membership Page')),
-    );
-  }
-
-  void _navigateToTrainingPage() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const TrainingUser()),
-    );
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Navigate to Training Page')),
-    );
-  }
-
-  void _navigateToProfilePage() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const ProfileUser()),
-    );
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Navigate to Profile Page')),
-    );
-  }
 
   void _navigateToTrainingDetail(int trainingId) {
-    // Navigator.push(
-    //   context,
-    //   MaterialPageRoute(builder: (context) => TrainingDetailPage(trainingId: trainingId)),
-    // );
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(content: Text('Navigate to Training Detail ID: $trainingId')),
-    );
+    // TODO: Implementasi navigasi ke halaman detail training user
+    _showSnackBar('Navigate to Training Detail ID: $trainingId (Not implemented yet)', Colors.blue);
   }
 
   @override
@@ -123,110 +187,127 @@ class _DashboardUserState extends State<DashboardUser> {
     return Scaffold(
       backgroundColor: Colors.black,
       body: SafeArea(
-        child: Column(
-          children: [
-            // Header Section with User Info
-            Container(
-              width: double.infinity,
-              padding: const EdgeInsets.all(24),
-              decoration: const BoxDecoration(
-                gradient: LinearGradient(
-                  colors: [Color(0xFF007662), Color(0xFF00DCB7)],
-                  begin: Alignment.topLeft,
-                  end: Alignment.bottomRight,
-                ),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(20),
-                  bottomRight: Radius.circular(20),
-                ),
-              ),
-              child: Row(
+        child: _isLoading // Tampilkan CircularProgressIndicator jika sedang loading
+            ? const Center(
+                child: CircularProgressIndicator(color: Color(0xFFE8D864)),
+              )
+            : Column(
                 children: [
-                  Expanded(
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
+                  // Header Section with User Info
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(24),
+                    decoration: const BoxDecoration(
+                      gradient: LinearGradient(
+                        colors: [Color(0xFF007662), Color(0xFF00DCB7)],
+                        begin: Alignment.topLeft,
+                        end: Alignment.bottomRight,
+                      ),
+                      borderRadius: BorderRadius.only(
+                        bottomLeft: Radius.circular(20),
+                        bottomRight: Radius.circular(20),
+                      ),
+                    ),
+                    child: Row(
                       children: [
-                        Text(
-                          widget.userName,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 24,
-                            fontWeight: FontWeight.bold,
+                        Expanded(
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                _currentUserName, // Menggunakan data dari backend
+                                style: const TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 24,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              const SizedBox(height: 4),
+                              Text(
+                                _currentMembershipStatus, // Menggunakan data dari backend
+                                style: const TextStyle(
+                                  color: Colors.white70,
+                                  fontSize: 16,
+                                ),
+                              ),
+                            ],
                           ),
                         ),
-                        const SizedBox(height: 4),
-                        Text(
-                          widget.membershipStatus,
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 16,
+                        // User Photo
+                        Container(
+                          width: 60,
+                          height: 60,
+                          decoration: BoxDecoration(
+                            shape: BoxShape.circle,
+                            border: Border.all(color: Colors.white, width: 2),
+                          ),
+                          child: ClipOval(
+                            // Menggunakan CachedNetworkImage untuk foto profil
+                            child: _currentUserPhotoUrl.isNotEmpty
+                                ? CachedNetworkImage(
+                                    imageUrl: _currentUserPhotoUrl,
+                                    fit: BoxFit.cover,
+                                    placeholder: (context, url) => const CircularProgressIndicator(color: Colors.white), // Placeholder saat memuat
+                                    errorWidget: (context, url, error) {
+                                      print('Error loading user profile photo: $error');
+                                      return _buildDefaultAvatar(); // Fallback jika error
+                                    },
+                                  )
+                                : _buildDefaultAvatar(), // Tampilkan avatar default jika URL kosong
                           ),
                         ),
                       ],
                     ),
                   ),
-                  // User Photo
-                  Container(
-                    width: 60,
-                    height: 60,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      border: Border.all(color: Colors.white, width: 2),
-                    ),
-                    child: ClipOval(
-                      child: widget.userPhotoUrl.isNotEmpty
-                          ? Image.network(
-                              widget.userPhotoUrl,
-                              fit: BoxFit.cover,
-                              errorBuilder: (context, error, stackTrace) {
-                                return _buildDefaultAvatar();
-                              },
+
+                  // Content Section
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 20),
+
+                          // Membership Card
+                          _buildMembershipCard(),
+
+                          const SizedBox(height: 24),
+
+                          // Training Section
+                          const Text(
+                            'Training taken',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+                          const SizedBox(height: 16),
+
+                          // Training List
+                          if (_userTrainings.isEmpty)
+                            const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(16.0),
+                                child: Text(
+                                  'You have not taken any training yet.',
+                                  style: TextStyle(color: Colors.white70),
+                                ),
+                              ),
                             )
-                          : _buildDefaultAvatar(),
+                          else
+                            // Menggunakan data training dari backend
+                            ..._userTrainings.map((training) => _buildTrainingCard(training)).toList(),
+
+                          const SizedBox(height: 100), // Spasi untuk bottom navigation
+                        ],
+                      ),
                     ),
                   ),
                 ],
               ),
-            ),
-
-            // Content Section
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 20),
-                    
-                    // Membership Card
-                    _buildMembershipCard(),
-                    
-                    const SizedBox(height: 24),
-                    
-                    // Training Section
-                    const Text(
-                      'Training taken',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    
-                    const SizedBox(height: 16),
-                    
-                    // Training List
-                    ...trainingList.map((training) => _buildTrainingCard(training)),
-                    
-                    const SizedBox(height: 100), // Space for bottom navigation
-                  ],
-                ),
-              ),
-            ),
-          ],
-        ),
       ),
-      
       // Bottom Navigation
       bottomNavigationBar: Container(
         color: Colors.black,
@@ -282,13 +363,27 @@ class _DashboardUserState extends State<DashboardUser> {
       height: 160,
       decoration: BoxDecoration(
         borderRadius: BorderRadius.circular(16),
-        // Replace with actual image later
-        image: const DecorationImage(
-          image: AssetImage('assets/images/gymstart.jpg'),
-          fit: BoxFit.cover,
-        ),
-        // Fallback gradient if image is not available
-        gradient: const LinearGradient(
+        // Menggunakan CachedNetworkImageProvider untuk background membership
+        image: _membershipBackground.startsWith('http') // Cek apakah ini URL jaringan
+            ? DecorationImage(
+                image: CachedNetworkImageProvider(_membershipBackground),
+                fit: BoxFit.cover,
+                colorFilter: ColorFilter.mode(Colors.black.withOpacity(0.4), BlendMode.darken),
+                // onError: (exception, stackTrace) {
+                //   // Jika NetworkImage gagal, maka _membershipBackground akan tetap pada URL yang gagal.
+                //   // Anda bisa menambahkan logika fallback di sini jika ingin mengubah gambar ke asset default
+                //   // tapi itu akan mengubah state global _membershipBackground.
+                //   // Untuk DecorationImage, NetworkImageProvider akan menampilkan "broken image" jika gagal
+                //   // kecuali Anda menangani errornya lebih lanjut di Image.network widget langsung.
+                //   // Saat ini, fallback ke gradient yang sudah ada.
+                //   print('Error loading membership background: $exception');
+                // },
+              )
+            : DecorationImage( // Jika bukan URL jaringan, anggap sebagai asset
+                image: AssetImage(_membershipBackground),
+                fit: BoxFit.cover,
+              ),
+        gradient: const LinearGradient( // Fallback gradient jika tidak ada gambar sama sekali atau gagal
           colors: [Color(0xFF2D2D2D), Color(0xFF1A1A1A)],
           begin: Alignment.topLeft,
           end: Alignment.bottomRight,
@@ -311,12 +406,11 @@ class _DashboardUserState extends State<DashboardUser> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              // Header row with membership type and days
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   Text(
-                    membershipType,
+                    _membershipType, // Menggunakan data dari backend
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 20,
@@ -330,7 +424,7 @@ class _DashboardUserState extends State<DashboardUser> {
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      '$remainingDays\nDAYS',
+                      '$_remainingDays\nDAYS', // Menggunakan data dari backend
                       textAlign: TextAlign.center,
                       style: const TextStyle(
                         color: Colors.black,
@@ -342,10 +436,7 @@ class _DashboardUserState extends State<DashboardUser> {
                   ),
                 ],
               ),
-              
               const Spacer(),
-              
-              // Extend Button - full width
               Container(
                 width: double.infinity,
                 height: 36,
@@ -375,7 +466,7 @@ class _DashboardUserState extends State<DashboardUser> {
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       child: GestureDetector(
-        onTap: () => _navigateToTrainingDetail(training['id']),
+        onTap: () => _navigateToTrainingDetail(training['id']), // Asumsi ada 'id' di data training
         child: Container(
           padding: const EdgeInsets.all(16),
           decoration: BoxDecoration(
@@ -395,14 +486,13 @@ class _DashboardUserState extends State<DashboardUser> {
                 children: [
                   // Left side - Training name
                   Text(
-                    training['name'],
+                    training['jenis_training'] ?? 'N/A', // Menggunakan 'jenis_training' dari backend
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 20,
                       fontWeight: FontWeight.bold,
                     ),
                   ),
-                  
                   // Right side - Time info
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
@@ -420,7 +510,7 @@ class _DashboardUserState extends State<DashboardUser> {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          training['time'],
+                          training['jam_training']?.substring(0, 5) ?? 'N/A', // Menggunakan 'jam_training' dari backend
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 12,
@@ -432,31 +522,28 @@ class _DashboardUserState extends State<DashboardUser> {
                   ),
                 ],
               ),
-              
               const SizedBox(height: 8),
-              
               // Trainer name and day in same row
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
                   // Left side - Trainer name
                   Text(
-                    training['trainer'],
+                    training['nama_trainer'] ?? 'N/A', // Menggunakan 'nama_trainer' dari backend
                     style: const TextStyle(
                       color: Color(0xFFE6E886),
                       fontSize: 16,
                     ),
                   ),
-                  
                   // Right side - Day
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Color(0xFF659B92),
+                      color: const Color(0xFF659B92),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Text(
-                      training['day'],
+                      training['hari_mulai'] ?? 'N/A', // Menggunakan 'hari_mulai' dari backend
                       style: const TextStyle(
                         color: Colors.white,
                         fontSize: 12,
@@ -465,16 +552,14 @@ class _DashboardUserState extends State<DashboardUser> {
                   ),
                 ],
               ),
-              
               const SizedBox(height: 12),
-              
               Row(
                 mainAxisAlignment: MainAxisAlignment.end,
                 children: [
                   Container(
                     padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: Color(0xFF659B92),
+                      color: const Color(0xFF659B92),
                       borderRadius: BorderRadius.circular(8),
                     ),
                     child: Row(
@@ -487,7 +572,7 @@ class _DashboardUserState extends State<DashboardUser> {
                         ),
                         const SizedBox(width: 4),
                         Text(
-                          training['weeksLeft'],
+                          '${training['sisa_pertemuan'] ?? 'N/A'} sessions left', // Menggunakan 'sisa_pertemuan' dari backend
                           style: const TextStyle(
                             color: Colors.white,
                             fontSize: 12,
@@ -516,8 +601,8 @@ class _DashboardUserState extends State<DashboardUser> {
         width: 56,
         height: 56,
         decoration: BoxDecoration(
-          color: isActive 
-              ? const Color(0xFF00B894) 
+          color: isActive
+              ? const Color(0xFF00B894)
               : const Color(0xFF2D2D2D),
           borderRadius: BorderRadius.circular(16),
         ),

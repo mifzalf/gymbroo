@@ -1,8 +1,12 @@
 import 'package:flutter/material.dart';
+import 'package:gymbroo/pages/users/dashboardPage.dart';
 import 'package:gymbroo/pages/users/membershipPage.dart';
-import 'package:gymbroo/pages/users/profile/dashboardPage.dart';
 import 'package:gymbroo/pages/users/profile/editProfile.dart';
-import 'package:gymbroo/pages/users/training/trainingPage.dart'; 
+import 'package:gymbroo/pages/users/training/trainingPage.dart';
+import 'package:http/http.dart' as http;
+import 'dart:convert';
+import 'package:shared_preferences/shared_preferences.dart';
+import 'package:cached_network_image/cached_network_image.dart';
 
 class ProfileUser extends StatefulWidget {
   final String userName;
@@ -12,10 +16,10 @@ class ProfileUser extends StatefulWidget {
 
   const ProfileUser({
     super.key,
-    this.userName = "Aqil Yoga Deandles",
-    this.userEmail = "aqil@gmail.com",
-    this.userPhotoUrl = "", // Default empty, will show placeholder
-    this.membershipStatus = "Premium Membership",
+    this.userName = "Loading...",
+    this.userEmail = "Loading...",
+    this.userPhotoUrl = "",
+    this.membershipStatus = "Loading...",
   });
 
   @override
@@ -23,108 +27,158 @@ class ProfileUser extends StatefulWidget {
 }
 
 class _ProfileUserState extends State<ProfileUser> {
-  int _currentIndex = 3; // Set to profile tab
+  int _currentIndex = 3;
 
-  final int remainingDays = 78;
+  String _currentUserName = "Loading...";
+  String _currentUserEmail = "Loading...";
+  String _currentUserPhotoUrl = "";
+  String _currentMembershipSummary = "Loading...";
 
-  final List<Map<String, dynamic>> trainingList = [
-    {
-      'name': 'Regular Training',
-      'trainer': 'Jonito Seppu',
-      'time': '20:30 WIB',
-      'day': 'Selasa',
-      'weeksLeft': '3 week left',
-      'id': 1,
-    },
-    {
-      'name': 'Yoga Training',
-      'trainer': 'Aqil Prayuni',
-      'time': '20:30 WIB',
-      'day': 'Senin',
-      'weeksLeft': '3 week left',
-      'id': 2,
-    },
-  ];
+  String _membershipType = "No Membership";
+  int _remainingDays = 0;
+  String _membershipBackground = "assets/images/membership_bg_dummy.jpg";
+
+  List<dynamic> _userTrainings = [];
+  
+  bool _isLoading = true;
+  final String _baseUrl = 'http://localhost:3000/API'; // Ubah ke IP lokal Anda
+  final String _userImagePathPrefix = 'http://localhost:3000/images/users/';
+  final String _membershipImagePathPrefix = 'http://localhost:3000/images/memberships/';
+  // >>> PERBAIKAN DI SINI: Deklarasikan _trainingImagePathPrefix <<<
+  final String _trainingImagePathPrefix = 'http://localhost:3000/images/trainings/'; // Prefix untuk gambar training
+  // <<< AKHIR PERBAIKAN >>>
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _fetchProfileData();
+    });
+  }
+
+  Future<void> _fetchProfileData() async {
+    setState(() {
+      _isLoading = true;
+    });
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      if (token == null) {
+        _showSnackBar('Authentication token not found. Please log in again.', Colors.red);
+        setState(() { _isLoading = false; });
+        return;
+      }
+
+      final response = await http.get(
+        Uri.parse('$_baseUrl/user/profile'),
+        headers: {
+          'Content-Type': 'application/json; charset=UTF-8',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      if (response.statusCode == 200) {
+        final Map<String, dynamic> responseData = json.decode(response.body);
+
+        final List<dynamic> profileData = responseData['Profile'] ?? [];
+        if (profileData.isNotEmpty) {
+          final userProfile = profileData[0];
+          _currentUserName = userProfile['username'] ?? 'N/A';
+          _currentUserEmail = userProfile['email'] ?? 'N/A';
+          _currentUserPhotoUrl = (userProfile['profile_photo'] != null && userProfile['profile_photo'] != 'default.png')
+              ? _userImagePathPrefix + userProfile['profile_photo']
+              : '';
+        }
+
+        final List<dynamic> membershipUsersData = responseData['membershipUsers'] ?? [];
+        if (membershipUsersData.isNotEmpty) {
+          final userMembership = membershipUsersData[0];
+          _membershipType = userMembership['jenis_member'] ?? 'No Membership Type';
+          _remainingDays = userMembership['sisa_hari_member'] ?? 0;
+          _membershipBackground = (userMembership['background_member'] != null && userMembership['background_member'] != 'default.png')
+              ? _membershipImagePathPrefix + userMembership['background_member']
+              : "assets/images/membership_bg_dummy.jpg";
+          
+          if (_remainingDays > 0) {
+            _currentMembershipSummary = 'Active Member (${_remainingDays} days left)';
+          } else {
+            _currentMembershipSummary = 'Membership Expired/None';
+          }
+        } else {
+          _currentMembershipSummary = 'No Active Membership';
+          _membershipType = 'No Membership';
+          _remainingDays = 0;
+          _membershipBackground = "assets/images/membership_bg_dummy.jpg";
+        }
+
+        _userTrainings = responseData['trainingUsers'] ?? [];
+        
+        setState(() {
+          // UI akan diperbarui dengan data baru
+        });
+        _showSnackBar('Profile data loaded successfully!', Colors.green);
+
+      } else if (response.statusCode == 401 || response.statusCode == 403) {
+        final responseBody = json.decode(response.body);
+        _showSnackBar(responseBody['message'] ?? 'Unauthorized or forbidden.', Colors.red);
+      } else {
+        final responseBody = json.decode(response.body);
+        _showSnackBar(responseBody['message'] ?? 'Failed to load profile data.', Colors.red);
+      }
+    } catch (e) {
+      _showSnackBar('Error fetching profile data: $e', Colors.red);
+      print('Error fetching profile data: $e');
+    } finally {
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  void _showSnackBar(String message, Color color) {
+    if (mounted) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text(message), backgroundColor: color),
+      );
+    }
+  }
 
   void _navigateToPage(int index) {
+    if (_currentIndex == index) return;
+
     setState(() {
       _currentIndex = index;
     });
 
     switch (index) {
       case 0:
-        _navigateToDashboardPage();
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const DashboardUser()));
         break;
       case 1:
-        _navigateToMembershipPage();
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const MembershipUser()));
         break;
       case 2:
-        _navigateToTrainingPage();
+        Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const TrainingUser()));
         break;
       case 3:
-        _navigateToProfilePage();
+        // Stay on current page
         break;
     }
   }
-  
-  void _navigateToDashboardPage() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const DashboardUser()),
-    );
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Navigate to Dashboard Page')),
-    );
-  }
-
-  void _navigateToMembershipPage() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const MembershipUser()),
-    );
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Navigate to Membership Page')),
-    );
-  }
-
-  void _navigateToTrainingPage() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const TrainingUser()),
-    );
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Navigate to Training Page')),
-    );
-  }
-
-  void _navigateToProfilePage() {
-    Navigator.push(
-      context,
-      MaterialPageRoute(builder: (context) => const ProfileUser()),
-    );
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Navigate to Profile Page')),
-    );
-  }
 
   void _editProfile() {
-    // Navigasi ke EditProfilePage dan kirim data pengguna saat ini
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => EditProfilePage(
-          userName: widget.userName,
-          userEmail: widget.userEmail,
-          userPhotoUrl: widget.userPhotoUrl,
-          membershipStatus: widget.membershipStatus,
+          userName: _currentUserName,
+          userEmail: _currentUserEmail,
+          userPhotoUrl: _currentUserPhotoUrl,
+          membershipStatus: _currentMembershipSummary,
         ),
       ),
-    );
-  }
-
-  void _extendMembership() {
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Extend Membership functionality')),
     );
   }
 
@@ -133,171 +187,188 @@ class _ProfileUserState extends State<ProfileUser> {
     return Scaffold(
       backgroundColor: Colors.black,
       body: SafeArea(
-        child: Column(
-          children: [
-            // Header Section with Background Image and Profile Text
-            Container(
-              width: double.infinity,
-              height: 120,
-              decoration: const BoxDecoration(
-                image: DecorationImage(
-                  image: AssetImage('assets/images/gymstart.jpg'),
-                  fit: BoxFit.cover,
-                ),
-                borderRadius: BorderRadius.only(
-                  bottomLeft: Radius.circular(20),
-                  bottomRight: Radius.circular(20),
-                ),
-              ),
-              child: Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    colors: [
-                      Colors.black.withOpacity(0.7),
-                      Colors.transparent,
-                    ],
-                    begin: Alignment.bottomCenter,
-                    end: Alignment.topCenter,
-                  ),
-                  borderRadius: const BorderRadius.only(
-                    bottomLeft: Radius.circular(20),
-                    bottomRight: Radius.circular(20),
-                  ),
-                ),
-                child: const Padding(
-                  padding: EdgeInsets.all(24),
-                  child: Align(
-                    alignment: Alignment.centerLeft,
-                    child: Text(
-                      'Profile',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 28,
-                        fontWeight: FontWeight.bold,
+        child: _isLoading
+            ? const Center(
+                child: CircularProgressIndicator(color: Color(0xFFE8D864)),
+              )
+            : Column(
+                children: [
+                  // Header Section with Background Image and Profile Text
+                  Container(
+                    width: double.infinity,
+                    height: 120,
+                    decoration: const BoxDecoration(
+                      image: DecorationImage(
+                        image: AssetImage('assets/images/gymstart.jpg'),
+                        fit: BoxFit.cover,
+                      ),
+                      borderRadius: BorderRadius.only(
+                        bottomLeft: Radius.circular(20),
+                        bottomRight: Radius.circular(20),
                       ),
                     ),
-                  ),
-                ),
-              ),
-            ),
-
-            // Content Section
-            Expanded(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.all(24),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 8),
-
-                    // Profile Image
-                    Center(
-                      child: Container(
-                        width: 80,
-                        height: 80,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 3),
-                        ),
-                        child: ClipOval(
-                          child: widget.userPhotoUrl.isNotEmpty
-                              ? Image.network(
-                                  widget.userPhotoUrl,
-                                  fit: BoxFit.cover,
-                                  errorBuilder: (context, error, stackTrace) {
-                                    return _buildDefaultAvatar();
-                                  },
-                                )
-                              : _buildDefaultAvatar(),
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 16),
-
-                    // User Name
-                    Center(
-                      child: Text(
-                        widget.userName,
-                        style: const TextStyle(
-                          color: Colors.white,
-                          fontSize: 24,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 4),
-
-                    // User Email
-                    Center(
-                      child: Text(
-                        widget.userEmail,
-                        style: const TextStyle(
-                          color: Colors.white70,
-                          fontSize: 16,
-                        ),
-                      ),
-                    ),
-
-                    const SizedBox(height: 20),
-
-                    // Edit Profile Button
-                    Container(
-                      width: double.infinity,
-                      height: 48,
+                    child: Container(
                       decoration: BoxDecoration(
-                        color: const Color(0xFFFFD700),
-                        borderRadius: BorderRadius.circular(12),
+                        gradient: LinearGradient(
+                          colors: [
+                            Colors.black.withOpacity(0.7),
+                            Colors.transparent,
+                          ],
+                          begin: Alignment.bottomCenter,
+                          end: Alignment.topCenter,
+                        ),
+                        borderRadius: const BorderRadius.only(
+                          bottomLeft: Radius.circular(20),
+                          bottomRight: Radius.circular(20),
+                        ),
                       ),
-                      child: Material(
-                        color: Colors.transparent,
-                        child: InkWell(
-                          onTap: _editProfile, // Panggil fungsi _editProfile untuk navigasi
-                          borderRadius: BorderRadius.circular(12),
-                          child: const Center(
-                            child: Text(
-                              'Edit Profile',
-                              style: TextStyle(
-                                color: Colors.black,
-                                fontSize: 16,
-                                fontWeight: FontWeight.bold,
-                              ),
+                      child: const Padding(
+                        padding: EdgeInsets.all(24),
+                        child: Align(
+                          alignment: Alignment.centerLeft,
+                          child: Text(
+                            'Profile',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 28,
+                              fontWeight: FontWeight.bold,
                             ),
                           ),
                         ),
                       ),
                     ),
+                  ),
 
-                    const SizedBox(height: 24),
+                  // Content Section
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: const EdgeInsets.all(24),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          const SizedBox(height: 8),
 
-                    // Membership Card
-                    _buildMembershipCard(),
+                          // Profile Image
+                          Center(
+                            child: Container(
+                              width: 80,
+                              height: 80,
+                              decoration: BoxDecoration(
+                                shape: BoxShape.circle,
+                                border: Border.all(color: Colors.white, width: 3),
+                              ),
+                              child: ClipOval(
+                                child: _currentUserPhotoUrl.isNotEmpty
+                                    ? CachedNetworkImage(
+                                        imageUrl: _currentUserPhotoUrl,
+                                        fit: BoxFit.cover,
+                                        placeholder: (context, url) => const CircularProgressIndicator(color: Colors.white),
+                                        errorWidget: (context, url, error) {
+                                          print('Error loading user profile photo: $error');
+                                          return _buildDefaultAvatar(40);
+                                        },
+                                      )
+                                    : _buildDefaultAvatar(40),
+                              ),
+                            ),
+                          ),
 
-                    const SizedBox(height: 32),
+                          const SizedBox(height: 16),
 
-                    // Training Section
-                    const Text(
-                      'Training taken',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
+                          // User Name
+                          Center(
+                            child: Text(
+                              _currentUserName,
+                              style: const TextStyle(
+                                color: Colors.white,
+                                fontSize: 24,
+                                fontWeight: FontWeight.bold,
+                              ),
+                            ),
+                          ),
+
+                          const SizedBox(height: 4),
+
+                          // User Email
+                          Center(
+                            child: Text(
+                              _currentUserEmail,
+                              style: const TextStyle(
+                                color: Colors.white70,
+                                fontSize: 16,
+                              ),
+                            ),
+                          ),
+
+                          const SizedBox(height: 20),
+
+                          // Edit Profile Button
+                          Container(
+                            width: double.infinity,
+                            height: 48,
+                            decoration: BoxDecoration(
+                              color: const Color(0xFFFFD700),
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Material(
+                              color: Colors.transparent,
+                              child: InkWell(
+                                onTap: _editProfile,
+                                borderRadius: BorderRadius.circular(12),
+                                child: const Center(
+                                  child: Text(
+                                    'Edit Profile',
+                                    style: TextStyle(
+                                      color: Colors.black,
+                                      fontSize: 16,
+                                      fontWeight: FontWeight.bold,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                          ),
+
+                          const SizedBox(height: 24),
+
+                          // Membership Card
+                          _buildMembershipCard(),
+
+                          const SizedBox(height: 32),
+
+                          // Training Section
+                          const Text(
+                            'Training taken',
+                            style: TextStyle(
+                              color: Colors.white,
+                              fontSize: 18,
+                              fontWeight: FontWeight.bold,
+                            ),
+                          ),
+
+                          const SizedBox(height: 16),
+
+                          // Training List
+                          if (_userTrainings.isEmpty)
+                            const Center(
+                              child: Padding(
+                                padding: EdgeInsets.all(16.0),
+                                child: Text(
+                                  'You have not taken any training yet.',
+                                  style: TextStyle(color: Colors.white70),
+                                ),
+                              ),
+                            )
+                          else
+                            ..._userTrainings.map((training) => _buildTrainingCard(training)).toList(),
+
+                          const SizedBox(height: 100), // Space for bottom navigation
+                        ],
                       ),
                     ),
-
-                    const SizedBox(height: 16),
-
-                    // Training List
-                    ...trainingList.map((training) => _buildTrainingCard(training)),
-
-                    const SizedBox(height: 100), // Space for bottom navigation
-                  ],
-                ),
+                  ),
+                ],
               ),
-            ),
-          ],
-        ),
       ),
 
       // Bottom Navigation
@@ -333,7 +404,8 @@ class _ProfileUserState extends State<ProfileUser> {
     );
   }
 
-  Widget _buildDefaultAvatar() {
+  // Widget untuk avatar default
+  Widget _buildDefaultAvatar(double size) {
     return Container(
       decoration: const BoxDecoration(
         shape: BoxShape.circle,
@@ -341,15 +413,131 @@ class _ProfileUserState extends State<ProfileUser> {
           colors: [Color(0xFF007662), Color(0xFF00DCB7)],
         ),
       ),
-      child: const Icon(
+      child: Icon(
         Icons.person,
         color: Colors.white,
-        size: 40,
+        size: size,
       ),
     );
   }
 
+  // Widget untuk kartu membership
+  Widget _buildMembershipCard() {
+    return Container(
+      width: double.infinity,
+      height: 160,
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        image: _membershipBackground.startsWith('http')
+            ? DecorationImage(
+                image: CachedNetworkImageProvider(_membershipBackground),
+                fit: BoxFit.cover,
+                colorFilter: ColorFilter.mode(Colors.black.withOpacity(0.4), BlendMode.darken),
+                onError: (exception, stackTrace) {
+                  print('Error loading membership background: $exception');
+                  if (mounted) {
+                    setState(() {
+                      _membershipBackground = "assets/images/membership_bg_dummy.jpg";
+                    });
+                  }
+                },
+              )
+            : DecorationImage(
+                image: AssetImage(_membershipBackground),
+                fit: BoxFit.cover,
+              ),
+        gradient: const LinearGradient(
+          colors: [Color(0xFF2D2D2D), Color(0xFF1A1A1A)],
+          begin: Alignment.topLeft,
+          end: Alignment.bottomRight,
+        ),
+      ),
+      child: Container(
+        decoration: BoxDecoration(
+          borderRadius: BorderRadius.circular(16),
+          gradient: LinearGradient(
+            colors: [
+              Colors.black.withOpacity(0.6),
+              Colors.transparent,
+            ],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          ),
+        ),
+        child: Padding(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Text(
+                    _membershipType,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 20,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF00DCB7),
+                      borderRadius: BorderRadius.circular(8),
+                    ),
+                    child: Text(
+                      '$_remainingDays\nDAYS',
+                      textAlign: TextAlign.center,
+                      style: const TextStyle(
+                        color: Colors.black,
+                        fontSize: 12,
+                        fontWeight: FontWeight.bold,
+                        height: 1.2,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+              const Spacer(),
+              Container(
+                width: double.infinity,
+                height: 36,
+                decoration: BoxDecoration(
+                  color: const Color(0xFFFFD700),
+                  borderRadius: BorderRadius.circular(18),
+                ),
+                child: const Center(
+                  child: Text(
+                    'Extend Now',
+                    style: TextStyle(
+                      color: Colors.black,
+                      fontSize: 14,
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Widget untuk kartu training yang diambil
   Widget _buildTrainingCard(Map<String, dynamic> training) {
+    // Kunci data dari userModel.getTrainingByIdUser:
+    // 'background_training', 'nama_trainer', 'jenis_training', 'jam_training', 'hari_mulai', 'sisa_pertemuan'
+
+    final String trainingTitle = training['jenis_training'] ?? 'N/A';
+    final String trainerName = training['nama_trainer'] ?? 'N/A';
+    final String timeStart = training['jam_training']?.substring(0, 5) ?? 'N/A';
+    final String days = training['hari_mulai'] ?? 'N/A';
+    final int sessionsLeft = training['sisa_pertemuan'] ?? 0;
+    final String bgImageName = training['background_training'] ?? 'gymstart.jpg';
+    final String bgImageUrl = _trainingImagePathPrefix + bgImageName;
+
     return Container(
       margin: const EdgeInsets.only(bottom: 16),
       child: Container(
@@ -365,20 +553,18 @@ class _ProfileUserState extends State<ProfileUser> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // Training name and time info in same row
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
                 // Left side - Training name
                 Text(
-                  training['name'],
+                  trainingTitle,
                   style: const TextStyle(
                     color: Colors.white,
                     fontSize: 16,
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-
                 // Right side - Time info
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
@@ -396,7 +582,7 @@ class _ProfileUserState extends State<ProfileUser> {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        training['time'],
+                        timeStart,
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 10,
@@ -417,7 +603,7 @@ class _ProfileUserState extends State<ProfileUser> {
               children: [
                 // Left side - Trainer name
                 Text(
-                  training['trainer'],
+                  trainerName,
                   style: const TextStyle(
                     color: Color(0xFFE6E886),
                     fontSize: 14,
@@ -432,7 +618,7 @@ class _ProfileUserState extends State<ProfileUser> {
                     borderRadius: BorderRadius.circular(8),
                   ),
                   child: Text(
-                    training['day'],
+                    days,
                     style: const TextStyle(
                       color: Colors.white,
                       fontSize: 10,
@@ -464,7 +650,7 @@ class _ProfileUserState extends State<ProfileUser> {
                       ),
                       const SizedBox(width: 4),
                       Text(
-                        training['weeksLeft'],
+                        '$sessionsLeft sessions left',
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 10,
@@ -476,78 +662,6 @@ class _ProfileUserState extends State<ProfileUser> {
               ],
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildMembershipCard() {
-    return Container(
-      width: double.infinity,
-      height: 160,
-      decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(16),
-        image: const DecorationImage(
-          image: AssetImage('assets/images/gymstart.jpg'),
-          fit: BoxFit.cover,
-        ),
-        gradient: const LinearGradient(
-          colors: [Color(0xFF2D2D2D), Color(0xFF1A1A1A)],
-          begin: Alignment.topLeft,
-          end: Alignment.bottomRight,
-        ),
-      ),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          gradient: LinearGradient(
-            colors: [
-              Colors.black.withOpacity(0.6),
-              Colors.transparent,
-            ],
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
-          ),
-        ),
-        child: Padding(
-          padding: const EdgeInsets.all(20),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Text(
-                    widget.membershipStatus,
-                    style: const TextStyle(
-                      color: Colors.white,
-                      fontSize: 20,
-                      fontWeight: FontWeight.bold,
-                    ),
-                  ),
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF00DCB7),
-                      borderRadius: BorderRadius.circular(8),
-                    ),
-                    child: Text(
-                      '$remainingDays\nDAYS',
-                      textAlign: TextAlign.center,
-                      style: const TextStyle(
-                        color: Colors.black,
-                        fontSize: 12,
-                        fontWeight: FontWeight.bold,
-                        height: 1.2,
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-              const Spacer(),
-            ],
-          ),
         ),
       ),
     );

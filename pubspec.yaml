@@ -4,24 +4,29 @@ publish_to: 'none'
 version: 1.0.0+1
 
 environment:
-  sdk: '>=3.8.0 <4.0.0'  # ✅ Perbaikan: batas bawah dan atas SDK secara eksplisit
+  sdk: '>=3.8.0 <4.0.0'
 
 dependencies:
   flutter:
     sdk: flutter
   cupertino_icons: ^1.0.8
   image_picker: ^1.1.2
-  shared_preferences: ^2.2.2 # versi bisa disesuaikan dengan versi terbaru
+  shared_preferences: ^2.2.2 
   url_launcher: ^6.2.2
   http: ^1.2.1
   mime: ^1.0.0
-
+  qr_flutter: ^4.1.0 
+  uuid: ^4.4.0
+  webview_flutter: ^4.7.0 
+  cached_network_image: ^3.3.1 
+  http_parser: ^4.0.2         
+  jwt_decoder: ^2.0.1
 
 dev_dependencies:
   flutter_test:
     sdk: flutter
   flutter_lints: ^5.0.0
-  
+
 
 flutter:
   uses-material-design: true
