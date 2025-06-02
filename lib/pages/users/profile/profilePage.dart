@@ -7,6 +7,7 @@ import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:cached_network_image/cached_network_image.dart';
+import 'package:gymbroo/pages/startPages.dart'; 
 
 class ProfileUser extends StatefulWidget {
   final String userName;
@@ -40,13 +41,12 @@ class _ProfileUserState extends State<ProfileUser> {
 
   List<dynamic> _userTrainings = [];
   
-  bool _isLoading = true;
-  final String _baseUrl = 'http://localhost:3000/API'; // Ubah ke IP lokal Anda
+  bool _isLoading = true; 
+  bool _isLoggingOut = false;
+  final String _baseUrl = 'http://localhost:3000/API'; 
   final String _userImagePathPrefix = 'http://localhost:3000/images/users/';
   final String _membershipImagePathPrefix = 'http://localhost:3000/images/memberships/';
-  // >>> PERBAIKAN DI SINI: Deklarasikan _trainingImagePathPrefix <<<
-  final String _trainingImagePathPrefix = 'http://localhost:3000/images/trainings/'; // Prefix untuk gambar training
-  // <<< AKHIR PERBAIKAN >>>
+  final String _trainingImagePathPrefix = 'http://localhost:3000/images/trainings/';
 
   @override
   void initState() {
@@ -72,7 +72,7 @@ class _ProfileUserState extends State<ProfileUser> {
       }
 
       final response = await http.get(
-        Uri.parse('$_baseUrl/user/profile'),
+        Uri.parse('$_baseUrl/user/profile'), 
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
           'Authorization': 'Bearer $token',
@@ -116,7 +116,6 @@ class _ProfileUserState extends State<ProfileUser> {
         _userTrainings = responseData['trainingUsers'] ?? [];
         
         setState(() {
-          // UI akan diperbarui dengan data baru
         });
         _showSnackBar('Profile data loaded successfully!', Colors.green);
 
@@ -182,24 +181,128 @@ class _ProfileUserState extends State<ProfileUser> {
     );
   }
 
+  void _showOptionsMenu() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF2D2D2D),
+          title: const Text('Profile Options', style: TextStyle(color: Colors.white)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              ListTile(
+                leading: const Icon(Icons.logout, color: Colors.red),
+                title: const Text('Logout', style: TextStyle(color: Colors.red)),
+                onTap: () {
+                  Navigator.of(context).pop(); 
+                  _confirmLogout(); 
+                },
+              ),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _confirmLogout() {
+    showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          backgroundColor: const Color(0xFF2D2D2D),
+          title: const Text('Confirm Logout', style: TextStyle(color: Colors.white)),
+          content: const Text('Are you sure you want to log out?', style: TextStyle(color: Colors.white70)),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.of(context).pop(),
+              child: const Text('Cancel', style: TextStyle(color: Colors.grey)),
+            ),
+            ElevatedButton(
+              onPressed: _isLoggingOut ? null : () {
+                Navigator.of(context).pop();
+                _performLogout();
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: Colors.red,
+              ),
+              child: _isLoggingOut
+                  ? const CircularProgressIndicator(color: Colors.white)
+                  : const Text('Logout', style: TextStyle(color: Colors.white)),
+            ),
+          ],
+        );
+      },
+    );
+  }
+
+  Future<void> _performLogout() async {
+    setState(() {
+      _isLoggingOut = true;
+    });
+    _showSnackBar('Logging out...', Colors.orange);
+
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final token = prefs.getString('token');
+
+      if (token == null) {
+        _showSnackBar('No token found. Already logged out or session expired.', Colors.green);
+      } else {
+        // Kirim request logout ke backend
+        final response = await http.post(
+          Uri.parse('$_baseUrl/logout'),
+          headers: {
+            'Content-Type': 'application/json; charset=UTF-8',
+            'Authorization': 'Bearer $token', 
+          },
+        );
+
+        if (response.statusCode == 200) {
+          _showSnackBar('Logout successful!', Colors.green);
+        } else {
+          final responseBody = json.decode(response.body);
+          _showSnackBar(responseBody['message'] ?? 'Logout failed. Please try again.', Colors.red);
+        }
+      }
+
+      await prefs.remove('token');
+      await prefs.remove('userType');
+      print('Token and userType removed from SharedPreferences.');
+
+      Navigator.of(context).pushAndRemoveUntil(
+        MaterialPageRoute(builder: (context) => const StartPage()),
+        (Route<dynamic> route) => false,
+      );
+
+    } catch (e) {
+      _showSnackBar('An error occurred during logout: $e', Colors.red);
+      print('Error logout: $e');
+    } finally {
+      setState(() {
+        _isLoggingOut = false; 
+      });
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
       body: SafeArea(
-        child: _isLoading
+        child: _isLoading 
             ? const Center(
                 child: CircularProgressIndicator(color: Color(0xFFE8D864)),
               )
             : Column(
                 children: [
-                  // Header Section with Background Image and Profile Text
                   Container(
                     width: double.infinity,
                     height: 120,
                     decoration: const BoxDecoration(
                       image: DecorationImage(
-                        image: AssetImage('assets/images/gymstart.jpg'),
+                        image: AssetImage('assets/images/gymstart.jpg'), 
                         fit: BoxFit.cover,
                       ),
                       borderRadius: BorderRadius.only(
@@ -222,24 +325,32 @@ class _ProfileUserState extends State<ProfileUser> {
                           bottomRight: Radius.circular(20),
                         ),
                       ),
-                      child: const Padding(
-                        padding: EdgeInsets.all(24),
+                      child: Padding(
+                        padding: const EdgeInsets.all(24),
                         child: Align(
                           alignment: Alignment.centerLeft,
-                          child: Text(
-                            'Profile',
-                            style: TextStyle(
-                              color: Colors.white,
-                              fontSize: 28,
-                              fontWeight: FontWeight.bold,
-                            ),
+                          child: Row( 
+                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                            children: [
+                              const Text(
+                                'Profile',
+                                style: TextStyle(
+                                  color: Colors.white,
+                                  fontSize: 28,
+                                  fontWeight: FontWeight.bold,
+                                ),
+                              ),
+                              IconButton(
+                                icon: const Icon(Icons.more_vert, color: Colors.white, size: 28),
+                                onPressed: _showOptionsMenu,
+                              ),
+                            ],
                           ),
                         ),
                       ),
                     ),
                   ),
 
-                  // Content Section
                   Expanded(
                     child: SingleChildScrollView(
                       padding: const EdgeInsets.all(24),
@@ -247,8 +358,6 @@ class _ProfileUserState extends State<ProfileUser> {
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
                           const SizedBox(height: 8),
-
-                          // Profile Image
                           Center(
                             child: Container(
                               width: 80,
@@ -275,7 +384,6 @@ class _ProfileUserState extends State<ProfileUser> {
 
                           const SizedBox(height: 16),
 
-                          // User Name
                           Center(
                             child: Text(
                               _currentUserName,
@@ -289,7 +397,6 @@ class _ProfileUserState extends State<ProfileUser> {
 
                           const SizedBox(height: 4),
 
-                          // User Email
                           Center(
                             child: Text(
                               _currentUserEmail,
@@ -302,7 +409,6 @@ class _ProfileUserState extends State<ProfileUser> {
 
                           const SizedBox(height: 20),
 
-                          // Edit Profile Button
                           Container(
                             width: double.infinity,
                             height: 48,
@@ -331,12 +437,10 @@ class _ProfileUserState extends State<ProfileUser> {
 
                           const SizedBox(height: 24),
 
-                          // Membership Card
                           _buildMembershipCard(),
 
                           const SizedBox(height: 32),
 
-                          // Training Section
                           const Text(
                             'Training taken',
                             style: TextStyle(
@@ -348,7 +452,6 @@ class _ProfileUserState extends State<ProfileUser> {
 
                           const SizedBox(height: 16),
 
-                          // Training List
                           if (_userTrainings.isEmpty)
                             const Center(
                               child: Padding(
@@ -362,7 +465,7 @@ class _ProfileUserState extends State<ProfileUser> {
                           else
                             ..._userTrainings.map((training) => _buildTrainingCard(training)).toList(),
 
-                          const SizedBox(height: 100), // Space for bottom navigation
+                          const SizedBox(height: 100),
                         ],
                       ),
                     ),
@@ -371,7 +474,6 @@ class _ProfileUserState extends State<ProfileUser> {
               ),
       ),
 
-      // Bottom Navigation
       bottomNavigationBar: Container(
         color: Colors.black,
         padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
@@ -404,7 +506,6 @@ class _ProfileUserState extends State<ProfileUser> {
     );
   }
 
-  // Widget untuk avatar default
   Widget _buildDefaultAvatar(double size) {
     return Container(
       decoration: const BoxDecoration(
@@ -421,7 +522,6 @@ class _ProfileUserState extends State<ProfileUser> {
     );
   }
 
-  // Widget untuk kartu membership
   Widget _buildMembershipCard() {
     return Container(
       width: double.infinity,
@@ -500,20 +600,28 @@ class _ProfileUserState extends State<ProfileUser> {
                 ],
               ),
               const Spacer(),
-              Container(
-                width: double.infinity,
-                height: 36,
-                decoration: BoxDecoration(
-                  color: const Color(0xFFFFD700),
-                  borderRadius: BorderRadius.circular(18),
-                ),
-                child: const Center(
-                  child: Text(
-                    'Extend Now',
-                    style: TextStyle(
-                      color: Colors.black,
-                      fontSize: 14,
-                      fontWeight: FontWeight.bold,
+              GestureDetector(
+                onTap: () {
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(builder: (context) => const MembershipUser()),
+                  );
+                },
+                child: Container(
+                  width: double.infinity,
+                  height: 36,
+                  decoration: BoxDecoration(
+                    color: const Color(0xFFFFD700),
+                    borderRadius: BorderRadius.circular(18),
+                  ),
+                  child: const Center(
+                    child: Text(
+                      'Extend Now',
+                      style: TextStyle(
+                        color: Colors.black,
+                        fontSize: 14,
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
                 ),
@@ -525,11 +633,7 @@ class _ProfileUserState extends State<ProfileUser> {
     );
   }
 
-  // Widget untuk kartu training yang diambil
   Widget _buildTrainingCard(Map<String, dynamic> training) {
-    // Kunci data dari userModel.getTrainingByIdUser:
-    // 'background_training', 'nama_trainer', 'jenis_training', 'jam_training', 'hari_mulai', 'sisa_pertemuan'
-
     final String trainingTitle = training['jenis_training'] ?? 'N/A';
     final String trainerName = training['nama_trainer'] ?? 'N/A';
     final String timeStart = training['jam_training']?.substring(0, 5) ?? 'N/A';
@@ -556,7 +660,6 @@ class _ProfileUserState extends State<ProfileUser> {
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Left side - Training name
                 Text(
                   trainingTitle,
                   style: const TextStyle(
@@ -565,7 +668,6 @@ class _ProfileUserState extends State<ProfileUser> {
                     fontWeight: FontWeight.bold,
                   ),
                 ),
-                // Right side - Time info
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   decoration: BoxDecoration(
@@ -597,11 +699,9 @@ class _ProfileUserState extends State<ProfileUser> {
 
             const SizedBox(height: 8),
 
-            // Trainer name and day in same row
             Row(
               mainAxisAlignment: MainAxisAlignment.spaceBetween,
               children: [
-                // Left side - Trainer name
                 Text(
                   trainerName,
                   style: const TextStyle(
@@ -609,8 +709,6 @@ class _ProfileUserState extends State<ProfileUser> {
                     fontSize: 14,
                   ),
                 ),
-
-                // Right side - Day
                 Container(
                   padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 3),
                   decoration: BoxDecoration(
@@ -630,7 +728,6 @@ class _ProfileUserState extends State<ProfileUser> {
 
             const SizedBox(height: 8),
 
-            // Weeks left aligned to right
             Row(
               mainAxisAlignment: MainAxisAlignment.end,
               children: [

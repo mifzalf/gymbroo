@@ -6,8 +6,8 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:mime/mime.dart'; // Import mime package
-import 'package:http_parser/http_parser.dart'; // Import for MediaType
+import 'package:mime/mime.dart'; 
+import 'package:http_parser/http_parser.dart'; 
 
 class EditMembershipPage extends StatefulWidget {
   final Map<String, dynamic> membership;
@@ -24,15 +24,15 @@ class _EditMembershipPageState extends State<EditMembershipPage> {
   final TextEditingController _priceController = TextEditingController();
   final TextEditingController _durationController = TextEditingController();
 
-  File? _newBackgroundImage; // For non-web
-  Uint8List? _newBackgroundImageBytes; // For web
-  XFile? _pickedXFile; // Store XFile to get name and mimeType
-  String? _currentBackgroundImageUrl; // For existing image URL from backend
+  File? _newBackgroundImage; 
+  Uint8List? _newBackgroundImageBytes; 
+  XFile? _pickedXFile; 
+  String? _currentBackgroundImageUrl; 
   final ImagePicker _picker = ImagePicker();
   bool _isLoading = false;
 
-  final String _baseUrl = 'http://localhost:3000/API'; // Your backend URL
-  final String _imagePathPrefix = 'http://localhost:3000/images/memberships/'; // Prefix for images from backend
+  final String _baseUrl = 'http://localhost:3000/API'; 
+  final String _imagePathPrefix = 'http://localhost:3000/images/memberships/'; 
 
   @override
   void initState() {
@@ -54,15 +54,15 @@ class _EditMembershipPageState extends State<EditMembershipPage> {
         setState(() {
           _newBackgroundImageBytes = bytes;
           _newBackgroundImage = null;
-          _currentBackgroundImageUrl = null; // Clear old URL when new image is picked
-          _pickedXFile = image; // Store XFile
+          _currentBackgroundImageUrl = null; 
+          _pickedXFile = image; 
         });
       } else {
         setState(() {
           _newBackgroundImage = File(image.path);
           _newBackgroundImageBytes = null;
-          _currentBackgroundImageUrl = null; // Clear old URL when new image is picked
-          _pickedXFile = image; // Store XFile
+          _currentBackgroundImageUrl = null; 
+          _pickedXFile = image; 
         });
       }
     }
@@ -84,7 +84,7 @@ class _EditMembershipPageState extends State<EditMembershipPage> {
         }
 
         var request = http.MultipartRequest(
-          'PATCH', // Using PATCH for update
+          'PATCH', 
           Uri.parse('$_baseUrl/admin/memberships/${widget.membership['id']}'),
         );
         request.headers['Authorization'] = 'Bearer $token';
@@ -93,7 +93,6 @@ class _EditMembershipPageState extends State<EditMembershipPage> {
         request.fields['price'] = _priceController.text;
         request.fields['membershipType'] = _membershipTypeController.text;
 
-        // Only add file if a new image is selected
         if (_newBackgroundImage != null || _newBackgroundImageBytes != null) {
           if (kIsWeb && _pickedXFile != null) {
             final String? mimeType = lookupMimeType(_pickedXFile!.name);
@@ -111,21 +110,18 @@ class _EditMembershipPageState extends State<EditMembershipPage> {
               await http.MultipartFile.fromPath(
                 'background',
                 _newBackgroundImage!.path,
-                filename: _pickedXFile?.name, // Use original XFile name if available
+                filename: _pickedXFile?.name,
                 contentType: (mimeType != null) ? MediaType.parse(mimeType) : null,
               ),
             );
           }
         }
-        // If _newBackgroundImage and _newBackgroundImageBytes are both null,
-        // no 'background' file will be added to the request,
-        // which means the backend will retain the existing background.
 
         var response = await request.send();
         final responseBody = await response.stream.bytesToString();
         final decodedBody = json.decode(responseBody);
 
-        if (response.statusCode == 200) { // Backend returns 200
+        if (response.statusCode == 200) { 
           _showSnackBar('Membership updated successfully!', Colors.green);
           Navigator.pop(context, true);
         } else if (response.statusCode == 401 || response.statusCode == 403) {
@@ -199,7 +195,6 @@ class _EditMembershipPageState extends State<EditMembershipPage> {
               ),
             ),
 
-            // Form content
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -209,7 +204,6 @@ class _EditMembershipPageState extends State<EditMembershipPage> {
                     children: [
                       const SizedBox(height: 24),
 
-                      // Background image upload section
                       GestureDetector(
                         onTap: _pickImage,
                         child: Container(
@@ -251,7 +245,6 @@ class _EditMembershipPageState extends State<EditMembershipPage> {
 
                       const SizedBox(height: 24),
 
-                      // Membership type input
                       Container(
                         decoration: BoxDecoration(
                           color: const Color(0xFF474242),
@@ -277,7 +270,6 @@ class _EditMembershipPageState extends State<EditMembershipPage> {
 
                       const SizedBox(height: 16),
 
-                      // Price input
                       Container(
                         decoration: BoxDecoration(
                           color: const Color(0xFF474242),
@@ -307,7 +299,6 @@ class _EditMembershipPageState extends State<EditMembershipPage> {
 
                       const SizedBox(height: 16),
 
-                      // Duration input
                       Container(
                         decoration: BoxDecoration(
                           color: const Color(0xFF474242),
@@ -337,7 +328,6 @@ class _EditMembershipPageState extends State<EditMembershipPage> {
 
                       const SizedBox(height: 32),
 
-                      // Edit button
                       SizedBox(
                         width: double.infinity,
                         height: 56,

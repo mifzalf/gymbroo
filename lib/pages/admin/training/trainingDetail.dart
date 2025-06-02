@@ -25,13 +25,12 @@ class _TrainingDetailPageState extends State<TrainingDetailPage> {
   @override
   void initState() {
     super.initState();
-    // Fetch trainer details based on ID
     if (widget.trainingData['trainer_id'] != null) {
       _fetchTrainerDetails(widget.trainingData['trainer_id']);
     } else {
       setState(() {
         _isLoadingTrainer = false;
-        _trainerInfo = {'username': 'N/A', 'whatsapp': ''}; // Handle case where trainer_id is null
+        _trainerInfo = {'username': 'N/A', 'whatsapp': ''}; 
       });
     }
   }
@@ -50,7 +49,7 @@ class _TrainingDetailPageState extends State<TrainingDetailPage> {
       }
 
       final response = await http.get(
-        Uri.parse('$_baseUrl/admin/trainers/$trainerId'), // Assuming this endpoint exists and returns full trainer data
+        Uri.parse('$_baseUrl/admin/trainers/$trainerId'), 
         headers: {
           'Authorization': 'Bearer $token',
         },
@@ -106,7 +105,6 @@ class _TrainingDetailPageState extends State<TrainingDetailPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // Header Section with gradient background and training name
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(24),
@@ -131,7 +129,6 @@ class _TrainingDetailPageState extends State<TrainingDetailPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Back button and title row
                   Row(
                     children: [
                       GestureDetector(
@@ -160,7 +157,6 @@ class _TrainingDetailPageState extends State<TrainingDetailPage> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  // Trainer info
                   _isLoadingTrainer
                       ? const Center(child: CircularProgressIndicator(color: Colors.white))
                       : Row(
@@ -177,14 +173,12 @@ class _TrainingDetailPageState extends State<TrainingDetailPage> {
               ),
             ),
 
-            // Content Section
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Program Description Section
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(20),
@@ -217,7 +211,6 @@ class _TrainingDetailPageState extends State<TrainingDetailPage> {
 
                     const SizedBox(height: 24),
 
-                    // Trainer Contact Section
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(20),
@@ -262,10 +255,8 @@ class _TrainingDetailPageState extends State<TrainingDetailPage> {
 
                     const SizedBox(height: 24),
 
-                    // Training Schedule Details
                     Row(
                       children: [
-                        // Days Card
                         Expanded(
                           child: Container(
                             padding: const EdgeInsets.all(16),
@@ -287,7 +278,6 @@ class _TrainingDetailPageState extends State<TrainingDetailPage> {
 
                         const SizedBox(width: 12),
 
-                        // Session Time Card
                         Expanded(
                           child: Container(
                             padding: const EdgeInsets.all(16),
@@ -311,10 +301,8 @@ class _TrainingDetailPageState extends State<TrainingDetailPage> {
 
                     const SizedBox(height: 16),
 
-                    // Price and Total Session
                     Row(
                       children: [
-                        // Total Price Card
                         Expanded(
                           child: Container(
                             padding: const EdgeInsets.all(16),
@@ -336,7 +324,6 @@ class _TrainingDetailPageState extends State<TrainingDetailPage> {
 
                         const SizedBox(width: 12),
 
-                        // Total Session Card
                         Expanded(
                           child: Container(
                             padding: const EdgeInsets.all(16),
@@ -357,11 +344,7 @@ class _TrainingDetailPageState extends State<TrainingDetailPage> {
                         ),
                       ],
                     ),
-
                     const Spacer(),
-
-                    // "Book Now" button removed from here
-                    // const SizedBox(height: 24), // Removed if Spacer already handles bottom spacing
                   ],
                 ),
               ),

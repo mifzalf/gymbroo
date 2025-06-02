@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart'; // For image picking
-import 'dart:io'; // For File class (non-web)
-import 'dart:typed_data'; // For Uint8List (web)
-import 'package:http/http.dart' as http; // For HTTP requests
-import 'dart:convert'; // For JSON encoding/decoding
-import 'package:flutter/foundation.dart' show kIsWeb; // To check if running on web
-import 'package:mime/mime.dart'; // For mimeType lookup
-import 'package:http_parser/http_parser.dart'; // For MediaType
+import 'package:image_picker/image_picker.dart'; 
+import 'dart:io';
+import 'dart:typed_data';
+import 'package:http/http.dart' as http; 
+import 'dart:convert'; 
+import 'package:flutter/foundation.dart' show kIsWeb; 
+import 'package:mime/mime.dart'; 
+import 'package:http_parser/http_parser.dart'; 
 
 class RegisterPage extends StatefulWidget {
   const RegisterPage({super.key});
@@ -22,14 +22,14 @@ class _RegisterPageState extends State<RegisterPage> {
   final _passwordController = TextEditingController();
   final _confirmPasswordController = TextEditingController();
 
-  File? _profileImage; // Stores File on non-web platforms
-  Uint8List? _profileImageBytes; // Stores image bytes on web
-  XFile? _pickedXFile; // Stores XFile to get name and mimeType
+  File? _profileImage; 
+  Uint8List? _profileImageBytes; 
+  XFile? _pickedXFile; 
   bool _isPasswordVisible = false;
   bool _isConfirmPasswordVisible = false;
   bool _isLoading = false;
 
-  final String _baseUrl = 'http://localhost:3000/API'; // Your backend URL
+  final String _baseUrl = 'http://localhost:3000/API'; 
 
   @override
   void dispose() {
@@ -40,26 +40,23 @@ class _RegisterPageState extends State<RegisterPage> {
     super.dispose();
   }
 
-  // Function to select profile image
   Future<void> _selectProfileImage() async {
     final picker = ImagePicker();
     final XFile? image = await picker.pickImage(source: ImageSource.gallery);
 
     if (image != null) {
       if (kIsWeb) {
-        // For web, read as bytes
         final bytes = await image.readAsBytes();
         setState(() {
           _profileImageBytes = bytes;
-          _profileImage = null; // Ensure File is null on web
-          _pickedXFile = image; // Store XFile
+          _profileImage = null;
+          _pickedXFile = image; 
         });
       } else {
-        // For non-web, use File
         setState(() {
           _profileImage = File(image.path);
-          _profileImageBytes = null; // Ensure bytes is null on non-web
-          _pickedXFile = image; // Store XFile
+          _profileImageBytes = null; 
+          _pickedXFile = image; 
         });
       }
     }
@@ -82,24 +79,23 @@ class _RegisterPageState extends State<RegisterPage> {
         request.fields['password'] = _passwordController.text;
         request.fields['confirmationPassword'] = _confirmPasswordController.text;
 
-        // Add profile photo file if selected
         if (kIsWeb && _pickedXFile != null) {
           final String? mimeType = lookupMimeType(_pickedXFile!.name);
           request.files.add(
             http.MultipartFile.fromBytes(
-              'profile_photo', // Field name must match backend's upload.single('profile_photo')
+              'profile_photo',
               _profileImageBytes!,
-              filename: _pickedXFile!.name, // Use original file name
-              contentType: (mimeType != null) ? MediaType.parse(mimeType) : MediaType('image', 'jpeg'), // Default to jpeg if lookup fails
+              filename: _pickedXFile!.name,
+              contentType: (mimeType != null) ? MediaType.parse(mimeType) : MediaType('image', 'jpeg'), 
             ),
           );
         } else if (!kIsWeb && _profileImage != null) {
           final String? mimeType = lookupMimeType(_profileImage!.path);
           request.files.add(
             await http.MultipartFile.fromPath(
-              'profile_photo', // Field name must match backend's upload.single('profile_photo')
+              'profile_photo',
               _profileImage!.path,
-              filename: _pickedXFile?.name, // Use original XFile name if available
+              filename: _pickedXFile?.name,
               contentType: (mimeType != null) ? MediaType.parse(mimeType) : null,
             ),
           );
@@ -185,7 +181,6 @@ class _RegisterPageState extends State<RegisterPage> {
 
                 const SizedBox(height: 50),
 
-                // Profile Image Picker
                 Center(
                   child: GestureDetector(
                     onTap: _selectProfileImage,
@@ -197,7 +192,6 @@ class _RegisterPageState extends State<RegisterPage> {
                             ? const Color(0xFF4ECDC4)
                             : const Color(0xFF2D2D2D),
                         shape: BoxShape.circle,
-                        // Display image based on platform
                         image: (_profileImage != null || _profileImageBytes != null)
                             ? DecorationImage(
                                 image: kIsWeb ? MemoryImage(_profileImageBytes!) : FileImage(_profileImage!) as ImageProvider,
@@ -218,7 +212,6 @@ class _RegisterPageState extends State<RegisterPage> {
 
                 const SizedBox(height: 40),
 
-                // Email Field
                 Container(
                   decoration: BoxDecoration(
                     color: const Color(0xFF2D2D2D),
@@ -249,7 +242,6 @@ class _RegisterPageState extends State<RegisterPage> {
 
                 const SizedBox(height: 20),
 
-                // Username Field (Validasi dipermudah untuk mengizinkan spasi)
                 Container(
                   decoration: BoxDecoration(
                     color: const Color(0xFF2D2D2D),
@@ -269,7 +261,6 @@ class _RegisterPageState extends State<RegisterPage> {
                       if (value == null || value.isEmpty) {
                         return 'Please enter your username';
                       }
-                      // Hanya validasi panjang yang dipertahankan
                       if (value.length < 1 || value.length > 30) {
                         return 'Username must be between 1 and 30 characters.';
                       }
@@ -280,7 +271,6 @@ class _RegisterPageState extends State<RegisterPage> {
 
                 const SizedBox(height: 20),
 
-                // Password Field
                 Container(
                   decoration: BoxDecoration(
                     color: const Color(0xFF2D2D2D),
@@ -331,7 +321,6 @@ class _RegisterPageState extends State<RegisterPage> {
 
                 const SizedBox(height: 20),
 
-                // Confirm Password Field
                 Container(
                   decoration: BoxDecoration(
                     color: const Color(0xFF2D2D2D),
@@ -373,7 +362,6 @@ class _RegisterPageState extends State<RegisterPage> {
 
                 const SizedBox(height: 40),
 
-                // Register Button
                 SizedBox(
                   width: double.infinity,
                   height: 50,
@@ -403,7 +391,6 @@ class _RegisterPageState extends State<RegisterPage> {
 
                 const SizedBox(height: 60),
 
-                // Bottom Navigation
                 Container(
                   width: double.infinity,
                   padding: const EdgeInsets.all(20),

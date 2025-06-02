@@ -92,7 +92,7 @@ class StartPage extends StatelessWidget {
                           width: 64,
                           height: 64,
                           decoration: BoxDecoration(
-                            color: const Color(0xFFE8D864), // Yellow color
+                            color: const Color(0xFFE8D864), 
                             borderRadius: BorderRadius.circular(32),
                             boxShadow: [
                               BoxShadow(

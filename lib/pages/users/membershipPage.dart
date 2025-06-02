@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import 'package:gymbroo/pages/users/dashboardPage.dart';
-import 'package:gymbroo/pages/users/payment/api_service.dart';
+import 'package:gymbroo/pages/users/payment/paymentMembership.dart';
 import 'package:gymbroo/pages/users/profile/profilePage.dart';
 import 'package:gymbroo/pages/users/training/trainingPage.dart';
 import 'package:http/http.dart' as http;
@@ -102,7 +102,6 @@ class _MembershipUserState extends State<MembershipUser> {
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const DashboardUser()));
         break;
       case 1:
-        // Stay on current page
         break;
       case 2:
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const TrainingUser()));
@@ -204,7 +203,6 @@ class _MembershipUserState extends State<MembershipUser> {
           'Authorization': 'Bearer $token',
         },
         body: jsonEncode(<String, dynamic>{
-          // Body ini opsional jika backend tidak memerlukannya, bisa kosong saja
         }),
       );
 
@@ -215,7 +213,7 @@ class _MembershipUserState extends State<MembershipUser> {
         final String? orderId = responseData['order_id'];
 
         if (transactionToken != null && orderId != null && redirectUrl != null) {
-          Navigator.of(context).pop(); // Tutup dialog pemilihan membership
+          Navigator.of(context).pop(); 
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -248,7 +246,6 @@ class _MembershipUserState extends State<MembershipUser> {
       body: SafeArea(
         child: Column(
           children: [
-            // Header Section
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(24),
@@ -285,7 +282,6 @@ class _MembershipUserState extends State<MembershipUser> {
               ),
             ),
 
-            // Content Section
             Expanded(
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator(color: Color(0xFFE8D864)))

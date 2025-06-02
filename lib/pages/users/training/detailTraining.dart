@@ -19,10 +19,10 @@ class UserTrainingDetailPage extends StatefulWidget {
 }
 
 class _UserTrainingDetailPageState extends State<UserTrainingDetailPage> {
-  Map<String, dynamic>? _fullTrainingDetails; // Data lengkap pelatihan dari backend
+  Map<String, dynamic>? _fullTrainingDetails;
   bool _isLoadingDetails = true;
   bool _isInitiatingPayment = false;
-  final String _baseUrl = 'http://localhost:3000/API'; // Ubah ke IP lokal Anda
+  final String _baseUrl = 'http://localhost:3000/API';
   final String _trainingImagePathPrefix = 'http://localhost:3000/images/trainings/';
 
   @override
@@ -32,8 +32,6 @@ class _UserTrainingDetailPageState extends State<UserTrainingDetailPage> {
       _fetchFullTrainingDetails(widget.trainingId);
     });
   }
-
-  // Fungsi untuk mengambil detail pelatihan lengkap dari backend
   Future<void> _fetchFullTrainingDetails(int id) async {
     setState(() {
       _isLoadingDetails = true;
@@ -50,7 +48,7 @@ class _UserTrainingDetailPageState extends State<UserTrainingDetailPage> {
       }
 
       final response = await http.get(
-        Uri.parse('$_baseUrl/user/trainings/$id'), // Ini adalah RUTE USER
+        Uri.parse('$_baseUrl/user/trainings/$id'), 
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
           'Authorization': 'Bearer $token',
@@ -58,23 +56,20 @@ class _UserTrainingDetailPageState extends State<UserTrainingDetailPage> {
       );
 
       if (response.statusCode == 200) {
-        // >>> PERBAIKAN DI SINI: Harapkan Map<String, dynamic> langsung <<<
-        final Map<String, dynamic>? responseData = json.decode(response.body); // Langsung Map, bisa null
+        final Map<String, dynamic>? responseData = json.decode(response.body); 
 
-        if (responseData != null) { // Cek apakah data tidak null
+        if (responseData != null) { 
           setState(() {
             _fullTrainingDetails = responseData;
           });
-          // Log tambahan untuk memeriksa data yang diterima
           print('DEBUG (DETAIL PAGE): Fetched Data: $_fullTrainingDetails');
           if (_fullTrainingDetails!['trainer_id'] == null || _fullTrainingDetails!['trainer_username'] == null) {
-             _showSnackBar('Trainer info is incomplete in fetched data. Showing default.', Colors.orange);
+              _showSnackBar('Trainer info is incomplete in fetched data. Showing default.', Colors.orange);
           }
         } else {
           _showSnackBar('Training details not found for ID: $id', Colors.orange);
           setState(() { _fullTrainingDetails = null; });
         }
-        // <<< AKHIR PERBAIKAN >>>
       } else if (response.statusCode == 401 || response.statusCode == 403) {
         final responseBody = json.decode(response.body);
         _showSnackBar(responseBody['message'] ?? 'Unauthorized or forbidden when fetching details.', Colors.red);
@@ -246,7 +241,6 @@ class _UserTrainingDetailPageState extends State<UserTrainingDetailPage> {
 
   @override
   Widget build(BuildContext context) {
-    // Tampilkan loading screen jika detail belum dimuat
     if (_isLoadingDetails) {
       return Scaffold(
         backgroundColor: Colors.black,
@@ -263,7 +257,6 @@ class _UserTrainingDetailPageState extends State<UserTrainingDetailPage> {
       );
     }
 
-    // Tampilkan pesan jika data tidak ditemukan (misalnya, ID salah atau fetch gagal)
     if (_fullTrainingDetails == null) {
       return Scaffold(
         backgroundColor: Colors.black,
@@ -285,7 +278,6 @@ class _UserTrainingDetailPageState extends State<UserTrainingDetailPage> {
       );
     }
 
-    // Data sudah dimuat, tampilkan UI utama
     final String? backgroundImageUrl = (_fullTrainingDetails!['background'] != null && _fullTrainingDetails!['background'] != 'default.png')
         ? _trainingImagePathPrefix + _fullTrainingDetails!['background']
         : null;
@@ -295,7 +287,6 @@ class _UserTrainingDetailPageState extends State<UserTrainingDetailPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // Header Section with gradient background and training name
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(24),
@@ -323,7 +314,6 @@ class _UserTrainingDetailPageState extends State<UserTrainingDetailPage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  // Back button and title row
                   Row(
                     children: [
                       GestureDetector(
@@ -352,7 +342,6 @@ class _UserTrainingDetailPageState extends State<UserTrainingDetailPage> {
                     ],
                   ),
                   const SizedBox(height: 16),
-                  // Trainer info
                   Row(
                     children: [
                       const Icon(Icons.person, color: Colors.white70, size: 16),
@@ -367,14 +356,12 @@ class _UserTrainingDetailPageState extends State<UserTrainingDetailPage> {
               ),
             ),
 
-            // Content Section
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(24),
                 child: Column(
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    // Program Description Section
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(20),
@@ -407,7 +394,6 @@ class _UserTrainingDetailPageState extends State<UserTrainingDetailPage> {
 
                     const SizedBox(height: 24),
 
-                    // Trainer Contact Section
                     Container(
                       width: double.infinity,
                       padding: const EdgeInsets.all(20),
@@ -450,10 +436,8 @@ class _UserTrainingDetailPageState extends State<UserTrainingDetailPage> {
 
                     const SizedBox(height: 24),
 
-                    // Training Schedule Details
                     Row(
                       children: [
-                        // Days Card
                         Expanded(
                           child: Container(
                             padding: const EdgeInsets.all(16),
@@ -475,7 +459,6 @@ class _UserTrainingDetailPageState extends State<UserTrainingDetailPage> {
 
                         const SizedBox(width: 12),
 
-                        // Session Time Card
                         Expanded(
                           child: Container(
                             padding: const EdgeInsets.all(16),
@@ -499,10 +482,8 @@ class _UserTrainingDetailPageState extends State<UserTrainingDetailPage> {
 
                     const SizedBox(height: 16),
 
-                    // Price and Total Session
                     Row(
                       children: [
-                        // Total Price Card
                         Expanded(
                           child: Container(
                             padding: const EdgeInsets.all(16),
@@ -524,7 +505,6 @@ class _UserTrainingDetailPageState extends State<UserTrainingDetailPage> {
 
                         const SizedBox(width: 12),
 
-                        // Total Session Card
                         Expanded(
                           child: Container(
                             padding: const EdgeInsets.all(16),
@@ -548,7 +528,6 @@ class _UserTrainingDetailPageState extends State<UserTrainingDetailPage> {
 
                     const Spacer(),
 
-                    // Tombol Enroll Now
                     SizedBox(
                       width: double.infinity,
                       height: 56,

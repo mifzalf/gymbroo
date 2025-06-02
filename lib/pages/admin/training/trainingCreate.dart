@@ -111,26 +111,23 @@ class _CreateTrainingPageState extends State<CreateTrainingPage> {
     }
   }
 
-  // >>> PERUBAHAN DI SINI: Format waktu ke HH:MM (24 jam)
   Future<void> _selectTime(BuildContext context) async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
       initialTime: TimeOfDay.now(),
       builder: (BuildContext context, Widget? child) {
         return MediaQuery(
-          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true), // Force 24-hour format for picker
+          data: MediaQuery.of(context).copyWith(alwaysUse24HourFormat: true), 
           child: child!,
         );
       },
     );
     if (picked != null) {
       setState(() {
-        // Format ke 'HH:MM' dengan padLeft untuk memastikan 2 digit
         _timeStartController.text = '${picked.hour.toString().padLeft(2, '0')}:${picked.minute.toString().padLeft(2, '0')}';
       });
     }
   }
-  // <<< AKHIR PERUBAHAN
 
   void _createTraining() async {
     if (_formKey.currentState!.validate()) {
@@ -223,7 +220,6 @@ class _CreateTrainingPageState extends State<CreateTrainingPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // Header
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Row(
@@ -261,7 +257,6 @@ class _CreateTrainingPageState extends State<CreateTrainingPage> {
               ),
             ),
 
-            // Form content
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -271,7 +266,6 @@ class _CreateTrainingPageState extends State<CreateTrainingPage> {
                     children: [
                       const SizedBox(height: 24),
 
-                      // Background Image Upload
                       GestureDetector(
                         onTap: _pickImage,
                         child: Container(
@@ -302,7 +296,6 @@ class _CreateTrainingPageState extends State<CreateTrainingPage> {
 
                       const SizedBox(height: 24),
 
-                      // Title Input
                       Container(
                         decoration: BoxDecoration(color: const Color(0xFF474242), borderRadius: BorderRadius.circular(12)),
                         child: TextFormField(
@@ -315,7 +308,6 @@ class _CreateTrainingPageState extends State<CreateTrainingPage> {
 
                       const SizedBox(height: 16),
 
-                      // Price Input
                       Container(
                         decoration: BoxDecoration(color: const Color(0xFF474242), borderRadius: BorderRadius.circular(12)),
                         child: TextFormField(
@@ -333,7 +325,6 @@ class _CreateTrainingPageState extends State<CreateTrainingPage> {
 
                       const SizedBox(height: 16),
 
-                      // Day Dropdown
                       Container(
                         decoration: BoxDecoration(color: const Color(0xFF474242), borderRadius: BorderRadius.circular(12)),
                         padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -356,7 +347,6 @@ class _CreateTrainingPageState extends State<CreateTrainingPage> {
 
                       const SizedBox(height: 16),
 
-                      // Time Start Input (with time picker)
                       Container(
                         decoration: BoxDecoration(color: const Color(0xFF474242), borderRadius: BorderRadius.circular(12)),
                         child: TextFormField(
@@ -376,7 +366,6 @@ class _CreateTrainingPageState extends State<CreateTrainingPage> {
 
                       const SizedBox(height: 16),
 
-                      // Total Session Input
                       Container(
                         decoration: BoxDecoration(color: const Color(0xFF474242), borderRadius: BorderRadius.circular(12)),
                         child: TextFormField(
@@ -394,7 +383,6 @@ class _CreateTrainingPageState extends State<CreateTrainingPage> {
 
                       const SizedBox(height: 16),
 
-                      // Trainer Dropdown
                       Container(
                         decoration: BoxDecoration(color: const Color(0xFF474242), borderRadius: BorderRadius.circular(12)),
                         padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -416,8 +404,6 @@ class _CreateTrainingPageState extends State<CreateTrainingPage> {
                       ),
 
                       const SizedBox(height: 16),
-
-                      // Description Input (Multi-line)
                       Container(
                         decoration: BoxDecoration(color: const Color(0xFF474242), borderRadius: BorderRadius.circular(12)),
                         child: TextFormField(
@@ -431,7 +417,6 @@ class _CreateTrainingPageState extends State<CreateTrainingPage> {
 
                       const SizedBox(height: 32),
 
-                      // Create Button
                       SizedBox(
                         width: double.infinity,
                         height: 56,

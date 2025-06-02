@@ -5,9 +5,9 @@ import 'package:gymbroo/pages/admin/membership/membershipPage.dart';
 import 'package:gymbroo/pages/admin/trainer/TrainerEdit.dart';
 import 'package:gymbroo/pages/admin/trainer/trainerCreate.dart';
 import 'package:gymbroo/pages/admin/training/trainingPage.dart';
-import 'package:http/http.dart' as http; // Import http
-import 'dart:convert'; // Import json
-import 'package:shared_preferences/shared_preferences.dart'; // Import SharedPreferences
+import 'package:http/http.dart' as http; 
+import 'dart:convert'; 
+import 'package:shared_preferences/shared_preferences.dart'; 
 
 class TrainerPage extends StatefulWidget {
   const TrainerPage({super.key});
@@ -19,17 +19,16 @@ class TrainerPage extends StatefulWidget {
 class _TrainerPageState extends State<TrainerPage> {
   int _currentIndex = 3; 
 
-  List<dynamic> trainerData = []; // Mengubah menjadi List<dynamic> untuk menampung data dari API
-  bool _isLoading = true; // State untuk loading data
-  final String _baseUrl = 'http://localhost:3000/API'; // Your backend URL
+  List<dynamic> trainerData = []; 
+  bool _isLoading = true; 
+  final String _baseUrl = 'http://localhost:3000/API';
 
   @override
   void initState() {
     super.initState();
-    _fetchTrainers(); // Fetch data when the page initializes
+    _fetchTrainers(); 
   }
 
-  // Function to fetch trainers list from the backend
   Future<void> _fetchTrainers() async {
     setState(() {
       _isLoading = true;
@@ -41,8 +40,6 @@ class _TrainerPageState extends State<TrainerPage> {
 
       if (token == null) {
         _showSnackBar('Authentication token not found. Please log in again.', Colors.red);
-        // Optionally, navigate to login page:
-        // Navigator.pushReplacementNamed(context, '/login');
         return;
       }
 
@@ -57,7 +54,7 @@ class _TrainerPageState extends State<TrainerPage> {
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = json.decode(response.body);
         setState(() {
-          trainerData = responseData['data']; // Mengambil data dari key 'data'
+          trainerData = responseData['data']; 
         });
       } else if (response.statusCode == 401 || response.statusCode == 403) {
         final responseBody = json.decode(response.body);
@@ -76,8 +73,7 @@ class _TrainerPageState extends State<TrainerPage> {
     }
   }
 
-  // Function to delete a trainer
-  Future<void> _deleteTrainer(int trainerId) async { // Definisi fungsi diubah, hanya menerima trainerId
+  Future<void> _deleteTrainer(int trainerId) async { 
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -88,7 +84,7 @@ class _TrainerPageState extends State<TrainerPage> {
             style: TextStyle(color: Colors.white),
           ),
           content: Text(
-            'Are you sure you want to delete this trainer?', // Pesan yang lebih umum karena nama tidak langsung tersedia
+            'Are you sure you want to delete this trainer?',
             style: const TextStyle(color: Colors.white70),
           ),
           actions: [
@@ -101,9 +97,9 @@ class _TrainerPageState extends State<TrainerPage> {
             ),
             TextButton(
               onPressed: () async {
-                Navigator.of(context).pop(); // Close the dialog
+                Navigator.of(context).pop(); 
                 setState(() {
-                  _isLoading = true; // Show loading while deleting
+                  _isLoading = true; 
                 });
 
                 try {
@@ -124,7 +120,6 @@ class _TrainerPageState extends State<TrainerPage> {
 
                   if (response.statusCode == 200) {
                     _showSnackBar('Trainer deleted successfully', Colors.green);
-                    // Refresh the trainer list after deletion
                     _fetchTrainers();
                   } else if (response.statusCode == 401 || response.statusCode == 403) {
                     final responseBody = json.decode(response.body);
@@ -186,7 +181,6 @@ class _TrainerPageState extends State<TrainerPage> {
         );
         break;
       case 3:
-        // Already on TrainerPage
         break;
       case 4:
         Navigator.pushReplacement(
@@ -202,8 +196,8 @@ class _TrainerPageState extends State<TrainerPage> {
       context,
       MaterialPageRoute(builder: (context) => const CreateTrainerPage()),
     );
-    if (result == true) { // If returned with success indication
-      _fetchTrainers(); // Refresh data
+    if (result == true) { 
+      _fetchTrainers(); 
     }
   }
 
@@ -212,8 +206,8 @@ class _TrainerPageState extends State<TrainerPage> {
       context,
       MaterialPageRoute(builder: (context) => EditTrainerPage(trainerData: trainer)),
     );
-    if (result == true) { // If returned with success indication
-      _fetchTrainers(); // Refresh data
+    if (result == true) {
+      _fetchTrainers(); 
     }
   }
 
@@ -224,7 +218,6 @@ class _TrainerPageState extends State<TrainerPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // Header Section
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(24),
@@ -259,7 +252,6 @@ class _TrainerPageState extends State<TrainerPage> {
               ),
             ),
 
-            // Create Button
             Padding(
               padding: const EdgeInsets.all(24),
               child: Align(
@@ -285,7 +277,6 @@ class _TrainerPageState extends State<TrainerPage> {
               ),
             ),
 
-            // Data Table
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -298,7 +289,6 @@ class _TrainerPageState extends State<TrainerPage> {
                       ? const Center(child: CircularProgressIndicator(color: Color(0xFFE8D864)))
                       : Column(
                           children: [
-                            // Table Header
                             Container(
                               padding: const EdgeInsets.all(16),
                               decoration: const BoxDecoration(
@@ -366,7 +356,6 @@ class _TrainerPageState extends State<TrainerPage> {
                               ),
                             ),
 
-                            // Table Data
                             Expanded(
                               child: trainerData.isEmpty
                                   ? const Center(
@@ -405,7 +394,7 @@ class _TrainerPageState extends State<TrainerPage> {
                                               Expanded(
                                                 flex: 3,
                                                 child: Text(
-                                                  item['username'] ?? '-', // Sesuaikan dengan key 'username' dari backend
+                                                  item['username'] ?? '-', 
                                                   style: const TextStyle(
                                                     color: Colors.white,
                                                     fontSize: 14,
@@ -416,7 +405,7 @@ class _TrainerPageState extends State<TrainerPage> {
                                               Expanded(
                                                 flex: 2,
                                                 child: Text(
-                                                  item['whatsapp'] ?? '-', // Sesuaikan dengan key 'whatsapp' dari backend
+                                                  item['whatsapp'] ?? '-', 
                                                   style: const TextStyle(
                                                     color: Colors.white,
                                                     fontSize: 14,
@@ -428,10 +417,10 @@ class _TrainerPageState extends State<TrainerPage> {
                                                 flex: 2,
                                                 child: Row(
                                                   mainAxisAlignment: MainAxisAlignment.center,
-                                                  mainAxisSize: MainAxisSize.min, // Fix RenderFlex overflow
+                                                  mainAxisSize: MainAxisSize.min,
                                                   children: [
                                                     GestureDetector(
-                                                      onTap: () => _editTrainer(item), // Meneruskan seluruh item
+                                                      onTap: () => _editTrainer(item),
                                                       child: Container(
                                                         padding: const EdgeInsets.all(4),
                                                         child: const Icon(
@@ -443,7 +432,7 @@ class _TrainerPageState extends State<TrainerPage> {
                                                     ),
                                                     const SizedBox(width: 8),
                                                     GestureDetector(
-                                                      onTap: () => _deleteTrainer(item['id']), // Meneruskan ID trainer
+                                                      onTap: () => _deleteTrainer(item['id']),
                                                       child: Container(
                                                         padding: const EdgeInsets.all(4),
                                                         child: const Icon(
@@ -470,7 +459,6 @@ class _TrainerPageState extends State<TrainerPage> {
 
             const SizedBox(height: 24),
 
-            // Bottom Navigation
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               child: Row(

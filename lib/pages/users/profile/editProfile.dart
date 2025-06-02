@@ -44,7 +44,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
   bool _isConfirmPasswordVisible = false;
   bool _isLoading = false;
 
-  final String _baseUrl = 'http://localhost:3000/API'; // Ubah ke IP lokal Anda
+  final String _baseUrl = 'http://localhost:3000/API';
   final String _userImagePathPrefix = 'http://localhost:3000/images/users/';
 
   @override
@@ -157,7 +157,7 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
         if (response.statusCode == 200) {
           _showSnackBar('Profile updated successfully!', Colors.green);
-          Navigator.pop(context); // Kembali ke halaman ProfileUser
+          Navigator.pop(context); 
         } else {
           _showSnackBar(decodedBody['message'] ?? 'Failed to update profile. Please try again.', Colors.red);
         }
@@ -172,12 +172,10 @@ class _EditProfilePageState extends State<EditProfilePage> {
     }
   }
 
-  // Fungsi untuk navigasi kembali
   void _navigateBack() {
     Navigator.pop(context);
   }
 
-  // Widget helper untuk membuat TextField dengan gaya yang konsisten
   Widget _buildTextField({
     required TextEditingController controller,
     required String hintText,
@@ -217,7 +215,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
       body: SafeArea(
         child: Column(
           children: [
-            // Header Section
             Container(
               width: double.infinity,
               height: 120,
@@ -284,7 +281,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
               ),
             ),
 
-            // Form Input
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.all(24),
@@ -292,7 +288,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
                   key: _formKey,
                   child: Column(
                     children: [
-                      // Profile Image Picker
                       Center(
                         child: GestureDetector(
                           onTap: _pickImage,
@@ -329,7 +324,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       ),
                       const SizedBox(height: 24),
 
-                      // Input Email
                       _buildTextField(
                         controller: _emailController,
                         hintText: 'Email',
@@ -343,28 +337,22 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       ),
                       const SizedBox(height: 16),
 
-                      // Input Nama
                       _buildTextField(
                         controller: _nameController,
                         hintText: 'Username',
                         icon: Icons.person,
                         validator: (value) {
                           if (value == null || value.isEmpty) return 'Username is required.';
-                          // >>> VALIDASI USERNAME KETAT SESUAI BACKEND <<<
-                          // Menghapus validasi yang melarang spasi jika backend sudah diupdate
-                          // if (value.contains(' ')) return 'Username cannot have spaces.'; // Jika backend diubah, hapus ini
                           if (!RegExp(r'^[a-zA-Z0-9._\s]+$').hasMatch(value)) return 'Username can only contain letters, numbers, spaces, dots, and underscores.'; // Tambahkan \s untuk spasi
                           if (RegExp(r'^\d+$').hasMatch(value)) return 'Username cannot be only numbers.';
                           if (value.contains('..')) return 'Username cannot have consecutive dots.';
                           if (value.endsWith('.')) return 'Username cannot end with a dot.';
                           if (value.length < 1 || value.length > 30) return 'Username must be between 1 and 30 characters.';
-                          // <<< AKHIR VALIDASI KETAT >>>
                           return null;
                         },
                       ),
                       const SizedBox(height: 16),
 
-                      // Input Password Baru
                       _buildTextField(
                         controller: _newPasswordController,
                         hintText: 'Enter New Password (optional)',
@@ -386,7 +374,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
                       ),
                       const SizedBox(height: 16),
 
-                      // Input Konfirmasi Password
                       _buildTextField(
                         controller: _confirmPasswordController,
                         hintText: 'Confirm New Password (optional)',
@@ -407,7 +394,6 @@ class _EditProfilePageState extends State<EditProfilePage> {
 
                       const SizedBox(height: 32),
 
-                      // Tombol Save
                       SizedBox(
                         width: double.infinity,
                         height: 56,

@@ -26,18 +26,17 @@ class TrainingUser extends StatefulWidget {
 class _TrainingUserState extends State<TrainingUser> {
   int _currentIndex = 2;
 
-  List<dynamic> _trainingPrograms = []; // Data pelatihan dari backend
-  bool _isLoading = true; // State untuk loading data
-  final String _baseUrl = 'http://localhost:3000/API'; // Your backend URL
-  final String _trainingImagePathPrefix = 'http://localhost:3000/images/trainings/'; // Prefix untuk gambar training
+  List<dynamic> _trainingPrograms = [];
+  bool _isLoading = true; 
+  final String _baseUrl = 'http://localhost:3000/API'; 
+  final String _trainingImagePathPrefix = 'http://localhost:3000/images/trainings/';
 
   @override
   void initState() {
     super.initState();
-    _fetchTrainingPrograms(); // Fetch data when the page initializes
+    _fetchTrainingPrograms();
   }
 
-  // Fungsi untuk mengambil daftar training dari backend
   Future<void> _fetchTrainingPrograms() async {
     setState(() {
       _isLoading = true;
@@ -53,7 +52,7 @@ class _TrainingUserState extends State<TrainingUser> {
       }
 
       final response = await http.get(
-        Uri.parse('$_baseUrl/user/trainings'), // Endpoint GET ALL trainings
+        Uri.parse('$_baseUrl/user/trainings'), 
         headers: {
           'Content-Type': 'application/json; charset=UTF-8',
           'Authorization': 'Bearer $token',
@@ -61,9 +60,9 @@ class _TrainingUserState extends State<TrainingUser> {
       );
 
       if (response.statusCode == 200) {
-        final List<dynamic> fetchedData = json.decode(response.body); // Backend mengembalikan array langsung
+        final List<dynamic> fetchedData = json.decode(response.body);
         setState(() {
-          _trainingPrograms = fetchedData; // <<< DATA DIISI DI SINI
+          _trainingPrograms = fetchedData;
         });
       } else if (response.statusCode == 401 || response.statusCode == 403) {
         final responseBody = json.decode(response.body);
@@ -81,7 +80,6 @@ class _TrainingUserState extends State<TrainingUser> {
       });
     }
   }
-
   void _showSnackBar(String message, Color color) {
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
@@ -89,14 +87,11 @@ class _TrainingUserState extends State<TrainingUser> {
       );
     }
   }
-
   void _navigateToPage(int index) {
     if (_currentIndex == index) return;
-
     setState(() {
       _currentIndex = index;
     });
-
     switch (index) {
       case 0:
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const DashboardUser()));
@@ -105,7 +100,6 @@ class _TrainingUserState extends State<TrainingUser> {
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const MembershipUser()));
         break;
       case 2:
-        // Stay on current page
         break;
       case 3:
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const ProfileUser()));
@@ -113,20 +107,17 @@ class _TrainingUserState extends State<TrainingUser> {
     }
   }
 
-  // >>> PERUBAHAN DI SINI: Hanya meneruskan training ID <<<
   void _navigateToTrainingDetail(int trainingId) {
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => UserTrainingDetailPage(
-          trainingId: trainingId, // Meneruskan training ID saja
+          trainingId: trainingId, 
         ),
       ),
     );
   }
-  // <<< AKHIR PERUBAHAN >>>
 
-  // Fungsi untuk memicu pendaftaran pelatihan (POST request ke backend)
   void _enrollTraining(Map<String, dynamic> training) async {
     _showSnackBar('Initiating enrollment for ${training['title']}...', const Color(0xFF00DCB7));
 
@@ -140,13 +131,12 @@ class _TrainingUserState extends State<TrainingUser> {
       }
 
       final response = await http.post(
-        Uri.parse('$_baseUrl/user/trainings/${training['id']}'), // Menggunakan ID training dari backend
+        Uri.parse('$_baseUrl/user/trainings/${training['id']}'), 
         headers: <String, String>{
           'Content-Type': 'application/json; charset=UTF-8',
           'Authorization': 'Bearer $token',
         },
         body: jsonEncode(<String, dynamic>{
-          // Data ini tidak digunakan oleh rute backend Anda, tapi boleh dikirim.
         }),
       );
 
@@ -158,7 +148,6 @@ class _TrainingUserState extends State<TrainingUser> {
 
         if (transactionToken != null && orderId != null && redirectUrl != null) {
           _showSnackBar('Payment initiated successfully for ${training['title']}.', Colors.green);
-          // Navigasi ke halaman pembayaran Midtrans
           Navigator.push(
             context,
             MaterialPageRoute(
@@ -184,7 +173,6 @@ class _TrainingUserState extends State<TrainingUser> {
     }
   }
 
-  // Fungsi konfirmasi pembayaran pelatihan (untuk TrainingUser)
   void _confirmEnrollment(Map<String, dynamic> training) {
     final String trainingTitle = training['title'] ?? 'N/A';
     final int price = training['price'] ?? 0;
@@ -226,8 +214,8 @@ class _TrainingUserState extends State<TrainingUser> {
             ),
             ElevatedButton(
               onPressed: () {
-                Navigator.of(context).pop(); // Tutup dialog
-                _enrollTraining(training); // Lanjutkan ke proses pendaftaran/pembayaran
+                Navigator.of(context).pop();
+                _enrollTraining(training); 
               },
               style: ElevatedButton.styleFrom(
                 backgroundColor: const Color(0xFF00DCB7),
@@ -247,7 +235,6 @@ class _TrainingUserState extends State<TrainingUser> {
       body: SafeArea(
         child: Column(
           children: [
-            // Header Section
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(24),
@@ -284,7 +271,6 @@ class _TrainingUserState extends State<TrainingUser> {
               ),
             ),
 
-            // Content Section
             Expanded(
               child: _isLoading
                   ? const Center(child: CircularProgressIndicator(color: Color(0xFFE8D864)))
@@ -304,7 +290,6 @@ class _TrainingUserState extends State<TrainingUser> {
                               ),
                             )
                           else
-                            // Menggunakan _trainingPrograms (data dari backend)
                             ..._trainingPrograms.map((training) => _buildTrainingCard(training)).toList(),
                           const SizedBox(height: 100),
                         ],
@@ -437,7 +422,7 @@ class _TrainingUserState extends State<TrainingUser> {
                   children: [
                     Expanded(
                       child: GestureDetector(
-                        onTap: () => _navigateToTrainingDetail(training['id']), // <<< PERUBAHAN DI SINI: Meneruskan ID saja
+                        onTap: () => _navigateToTrainingDetail(training['id']), 
                         child: Container(
                           height: 36,
                           margin: const EdgeInsets.only(right: 8),

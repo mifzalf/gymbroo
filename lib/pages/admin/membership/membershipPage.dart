@@ -21,15 +21,14 @@ class _MembershipPageState extends State<MembershipPage> {
 
   List<dynamic> membershipData = [];
   bool _isLoading = true;
-  final String _baseUrl = 'http://localhost:3000/API'; // Your backend URL
+  final String _baseUrl = 'http://localhost:3000/API';
 
   @override
   void initState() {
     super.initState();
-    _fetchMemberships(); // Fetch data when the page initializes
+    _fetchMemberships(); 
   }
 
-  // Function to fetch membership list from the backend
   Future<void> _fetchMemberships() async {
     setState(() {
       _isLoading = true;
@@ -41,8 +40,6 @@ class _MembershipPageState extends State<MembershipPage> {
 
       if (token == null) {
         _showSnackBar('Authentication token not found. Please log in again.', Colors.red);
-        // Optionally, navigate to login page:
-        // Navigator.pushReplacementNamed(context, '/login');
         return;
       }
 
@@ -76,7 +73,6 @@ class _MembershipPageState extends State<MembershipPage> {
     }
   }
 
-  // Function to delete a membership
   Future<void> _deleteMembership(int membershipId, int index) async {
     showDialog(
       context: context,
@@ -101,9 +97,9 @@ class _MembershipPageState extends State<MembershipPage> {
             ),
             TextButton(
               onPressed: () async {
-                Navigator.of(context).pop(); // Close the dialog
+                Navigator.of(context).pop();
                 setState(() {
-                  _isLoading = true; // Show loading while deleting
+                  _isLoading = true;
                 });
 
                 try {
@@ -124,7 +120,6 @@ class _MembershipPageState extends State<MembershipPage> {
 
                   if (response.statusCode == 200) {
                     _showSnackBar('Membership deleted successfully', Colors.green);
-                    // Refresh the membership list after deletion
                     _fetchMemberships();
                   } else if (response.statusCode == 401 || response.statusCode == 403) {
                     final responseBody = json.decode(response.body);
@@ -138,7 +133,7 @@ class _MembershipPageState extends State<MembershipPage> {
                   print('Error deleting membership: $e');
                 } finally {
                   setState(() {
-                    _isLoading = false; // Hide loading
+                    _isLoading = false;
                   });
                 }
               },
@@ -174,7 +169,6 @@ class _MembershipPageState extends State<MembershipPage> {
         );
         break;
       case 1:
-        // Already on MembershipPage
         break;
       case 2:
         Navigator.pushReplacement(
@@ -202,8 +196,8 @@ class _MembershipPageState extends State<MembershipPage> {
       context,
       MaterialPageRoute(builder: (context) => const CreateMembershipPage()),
     );
-    if (result == true) { // If returned with success indication
-      _fetchMemberships(); // Refresh data
+    if (result == true) { 
+      _fetchMemberships(); 
     }
   }
 
@@ -212,8 +206,8 @@ class _MembershipPageState extends State<MembershipPage> {
       context,
       MaterialPageRoute(builder: (context) => EditMembershipPage(membership: membership)),
     );
-    if (result == true) { // If returned with success indication
-      _fetchMemberships(); // Refresh data
+    if (result == true) { 
+      _fetchMemberships(); 
     }
   }
 
@@ -224,7 +218,6 @@ class _MembershipPageState extends State<MembershipPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // Header Section
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(24),
@@ -259,7 +252,6 @@ class _MembershipPageState extends State<MembershipPage> {
               ),
             ),
 
-            // Create Button
             Padding(
               padding: const EdgeInsets.all(24),
               child: Align(
@@ -285,7 +277,6 @@ class _MembershipPageState extends State<MembershipPage> {
               ),
             ),
 
-            // Data Table
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -298,7 +289,6 @@ class _MembershipPageState extends State<MembershipPage> {
                       ? const Center(child: CircularProgressIndicator(color: Color(0xFFE8D864)))
                       : Column(
                           children: [
-                            // Table Header
                             Container(
                               padding: const EdgeInsets.all(16),
                               decoration: const BoxDecoration(
@@ -378,7 +368,6 @@ class _MembershipPageState extends State<MembershipPage> {
                               ),
                             ),
 
-                            // Table Data
                             Expanded(
                               child: membershipData.isEmpty
                                   ? const Center(
@@ -492,7 +481,6 @@ class _MembershipPageState extends State<MembershipPage> {
 
             const SizedBox(height: 24),
 
-            // Bottom Navigation
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               child: Row(

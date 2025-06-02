@@ -6,9 +6,9 @@ import 'package:gymbroo/pages/admin/trainer/trainerPage.dart';
 import 'package:gymbroo/pages/admin/training/trainingCreate.dart';
 import 'package:gymbroo/pages/admin/training/trainingDetail.dart';
 import 'package:gymbroo/pages/admin/training/trainingEdit.dart';
-import 'package:http/http.dart' as http; // Import http
-import 'dart:convert'; // Import json
-import 'package:shared_preferences/shared_preferences.dart'; // Import SharedPreferences
+import 'package:http/http.dart' as http;
+import 'dart:convert'; 
+import 'package:shared_preferences/shared_preferences.dart'; 
 
 class TrainingPage extends StatefulWidget {
   const TrainingPage({super.key});
@@ -18,19 +18,18 @@ class TrainingPage extends StatefulWidget {
 }
 
 class _TrainingPageState extends State<TrainingPage> {
-  int _currentIndex = 2; // Set to 2 since this is the training page
+  int _currentIndex = 2; 
 
-  List<dynamic> trainingData = []; // Ubah menjadi List<dynamic> untuk menampung data dari API
-  bool _isLoading = true; // State untuk loading data
-  final String _baseUrl = 'http://localhost:3000/API'; // Your backend URL
+  List<dynamic> trainingData = []; 
+  bool _isLoading = true;
+  final String _baseUrl = 'http://localhost:3000/API'; 
 
   @override
   void initState() {
     super.initState();
-    _fetchTrainings(); // Fetch data when the page initializes
+    _fetchTrainings();
   }
 
-  // Function to fetch trainings list from the backend
   Future<void> _fetchTrainings() async {
     setState(() {
       _isLoading = true;
@@ -42,8 +41,6 @@ class _TrainingPageState extends State<TrainingPage> {
 
       if (token == null) {
         _showSnackBar('Authentication token not found. Please log in again.', Colors.red);
-        // Optionally, navigate to login page:
-        // Navigator.pushReplacementNamed(context, '/login');
         return;
       }
 
@@ -77,8 +74,7 @@ class _TrainingPageState extends State<TrainingPage> {
     }
   }
 
-  // Function to delete a training
-  Future<void> _deleteTraining(int trainingId) async { // Hanya menerima trainingId
+  Future<void> _deleteTraining(int trainingId) async { 
     showDialog(
       context: context,
       builder: (BuildContext context) {
@@ -102,9 +98,9 @@ class _TrainingPageState extends State<TrainingPage> {
             ),
             TextButton(
               onPressed: () async {
-                Navigator.of(context).pop(); // Close the dialog
+                Navigator.of(context).pop(); 
                 setState(() {
-                  _isLoading = true; // Show loading while deleting
+                  _isLoading = true;
                 });
 
                 try {
@@ -125,7 +121,6 @@ class _TrainingPageState extends State<TrainingPage> {
 
                   if (response.statusCode == 200) {
                     _showSnackBar('Training class deleted successfully', Colors.green);
-                    // Refresh the training list after deletion
                     _fetchTrainings();
                   } else if (response.statusCode == 401 || response.statusCode == 403) {
                     final responseBody = json.decode(response.body);
@@ -181,7 +176,6 @@ class _TrainingPageState extends State<TrainingPage> {
         );
         break;
       case 2:
-        // Stay on training page
         break;
       case 3:
         Navigator.pushReplacement(
@@ -203,36 +197,36 @@ class _TrainingPageState extends State<TrainingPage> {
       context,
       MaterialPageRoute(builder: (context) => const CreateTrainingPage()),
     );
-    if (result == true) { // If returned with success indication
-      _fetchTrainings(); // Refresh data
+    if (result == true) { 
+      _fetchTrainings(); 
     }
   }
 
-  void _editTraining(Map<String, dynamic> training) async { // Menerima Map<String, dynamic>
+  void _editTraining(Map<String, dynamic> training) async { 
     final result = await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => EditTrainingPage(
-          trainingData: training, // Meneruskan data pelatihan lengkap
+          trainingData: training, 
         ),
       ),
     );
-    if (result == true) { // If returned with success indication
-      _fetchTrainings(); // Refresh data
+    if (result == true) { 
+      _fetchTrainings();
     }
   }
 
-  // Function to navigate to training detail page when name is clicked
-  void _viewTrainingDetail(Map<String, dynamic> training) { // Menerima Map<String, dynamic>
+
+  void _viewTrainingDetail(Map<String, dynamic> training) { 
     Navigator.push(
       context,
       MaterialPageRoute(
         builder: (context) => TrainingDetailPage(
-          trainingData: training, // Meneruskan data lengkap ke halaman detail
+          trainingData: training, 
         ),
       ),
     );
-    _showSnackBar('Viewing details for: ${training['title']}', Colors.blue); // Menggunakan 'title' dari backend
+    _showSnackBar('Viewing details for: ${training['title']}', Colors.blue);
   }
 
   @override
@@ -303,7 +297,6 @@ class _TrainingPageState extends State<TrainingPage> {
               ),
             ),
 
-            // Data Table
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -316,7 +309,6 @@ class _TrainingPageState extends State<TrainingPage> {
                       ? const Center(child: CircularProgressIndicator(color: Color(0xFFE8D864)))
                       : Column(
                           children: [
-                            // Table Header
                             Container(
                               padding: const EdgeInsets.all(16),
                               decoration: const BoxDecoration(
@@ -396,7 +388,6 @@ class _TrainingPageState extends State<TrainingPage> {
                               ),
                             ),
 
-                            // Table Data
                             Expanded(
                               child: trainingData.isEmpty
                                   ? const Center(
@@ -435,9 +426,9 @@ class _TrainingPageState extends State<TrainingPage> {
                                               Expanded(
                                                 flex: 3,
                                                 child: GestureDetector(
-                                                  onTap: () => _viewTrainingDetail(item), // Pass the whole item
+                                                  onTap: () => _viewTrainingDetail(item), 
                                                   child: Text(
-                                                    item['title'] ?? '-', // Using 'title' from backend
+                                                    item['title'] ?? '-',
                                                     style: const TextStyle(
                                                       color: Colors.white,
                                                       fontSize: 14,
@@ -451,7 +442,7 @@ class _TrainingPageState extends State<TrainingPage> {
                                               Expanded(
                                                 flex: 2,
                                                 child: Text(
-                                                  'Rp ${item['price']?.toString() ?? '-'}', // Using 'price' from backend
+                                                  'Rp ${item['price']?.toString() ?? '-'}',
                                                   style: const TextStyle(
                                                     color: Colors.white,
                                                     fontSize: 14,
@@ -462,7 +453,7 @@ class _TrainingPageState extends State<TrainingPage> {
                                               Expanded(
                                                 flex: 2,
                                                 child: Text(
-                                                  item['time_start']?.substring(0, 5) ?? '-', // Using 'time_start' from backend
+                                                  item['time_start']?.substring(0, 5) ?? '-', 
                                                   style: const TextStyle(
                                                     color: Colors.white,
                                                     fontSize: 14,
@@ -474,10 +465,10 @@ class _TrainingPageState extends State<TrainingPage> {
                                                 flex: 2,
                                                 child: Row(
                                                   mainAxisAlignment: MainAxisAlignment.center,
-                                                  mainAxisSize: MainAxisSize.min, // Fix RenderFlex overflow
+                                                  mainAxisSize: MainAxisSize.min,
                                                   children: [
                                                     GestureDetector(
-                                                      onTap: () => _editTraining(item), // Pass the whole item
+                                                      onTap: () => _editTraining(item),
                                                       child: Container(
                                                         padding: const EdgeInsets.all(4),
                                                         child: const Icon(
@@ -489,7 +480,7 @@ class _TrainingPageState extends State<TrainingPage> {
                                                     ),
                                                     const SizedBox(width: 8),
                                                     GestureDetector(
-                                                      onTap: () => _deleteTraining(item['id']), // Pass training ID
+                                                      onTap: () => _deleteTraining(item['id']),
                                                       child: Container(
                                                         padding: const EdgeInsets.all(4),
                                                         child: const Icon(
@@ -516,7 +507,6 @@ class _TrainingPageState extends State<TrainingPage> {
 
             const SizedBox(height: 24),
 
-            // Bottom Navigation
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               child: Row(

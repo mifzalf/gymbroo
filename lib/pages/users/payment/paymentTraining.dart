@@ -1,13 +1,10 @@
-// File: lib/pages/users/training/training_payment_page.dart
-
 import 'package:flutter/material.dart';
-import 'package:qr_flutter/qr_flutter.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:url_launcher/url_launcher.dart'; // Untuk membuka URL Midtrans Snap
+import 'package:url_launcher/url_launcher.dart'; 
 
-class TrainingPaymentPage extends StatefulWidget { // Ubah nama kelas
+class TrainingPaymentPage extends StatefulWidget { 
   final String orderId;
   final String transactionToken;
   final String productName;
@@ -24,19 +21,18 @@ class TrainingPaymentPage extends StatefulWidget { // Ubah nama kelas
   });
 
   @override
-  State<TrainingPaymentPage> createState() => _TrainingPaymentPageState(); // Ubah nama state
+  State<TrainingPaymentPage> createState() => _TrainingPaymentPageState(); 
 }
 
-class _TrainingPaymentPageState extends State<TrainingPaymentPage> { // Ubah nama state
+class _TrainingPaymentPageState extends State<TrainingPaymentPage> { 
   String _paymentStatus = 'PENDING';
   bool _isCheckingStatus = false;
-  String _message = 'Tap "Open Midtrans Payment Page" button below to pay for your training.'; // Sesuaikan pesan
+  String _message = 'Tap "Open Midtrans Payment Page" button below to pay for your training.'; 
   final String _baseUrl = 'http://localhost:3000/API';
 
   @override
   void initState() {
     super.initState();
-    // Anda bisa menambahkan timer di sini untuk cek status otomatis
   }
 
   Future<void> _checkPaymentStatus() async {
@@ -55,9 +51,8 @@ class _TrainingPaymentPageState extends State<TrainingPaymentPage> { // Ubah nam
         return;
       }
 
-      // Gunakan endpoint yang spesifik untuk training payment status
       final response = await http.get(
-        Uri.parse('$_baseUrl/user/trainings/payment-status/${widget.orderId}'), // Endpoint training payment status
+        Uri.parse('$_baseUrl/user/trainings/payment-status/${widget.orderId}'), 
         headers: {
           'Authorization': 'Bearer $token',
         },
@@ -71,7 +66,7 @@ class _TrainingPaymentPageState extends State<TrainingPaymentPage> { // Ubah nam
         });
 
         if (_paymentStatus == 'paid') {
-          _showSnackBar('Payment successful! Training enrolled.', Colors.green); // Sesuaikan pesan
+          _showSnackBar('Payment successful! Training enrolled.', Colors.green); 
           Navigator.popUntil(context, (route) => route.isFirst);
         } else {
           _showSnackBar(_message, Colors.orange);
@@ -103,7 +98,7 @@ class _TrainingPaymentPageState extends State<TrainingPaymentPage> { // Ubah nam
     return Scaffold(
       backgroundColor: Colors.black,
       appBar: AppBar(
-        title: const Text('Complete Training Payment', style: TextStyle(color: Colors.white)), // Sesuaikan judul
+        title: const Text('Complete Training Payment', style: TextStyle(color: Colors.white)),
         backgroundColor: const Color(0xFF007662),
         leading: IconButton(
           icon: const Icon(Icons.arrow_back, color: Colors.white),
@@ -116,7 +111,7 @@ class _TrainingPaymentPageState extends State<TrainingPaymentPage> { // Ubah nam
           crossAxisAlignment: CrossAxisAlignment.center,
           children: [
             Text(
-              'Training: ${widget.productName}', // Sesuaikan teks
+              'Training: ${widget.productName}',
               style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 8),

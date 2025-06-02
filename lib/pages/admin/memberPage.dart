@@ -3,9 +3,9 @@ import 'package:gymbroo/pages/admin/dashboardPage.dart';
 import 'package:gymbroo/pages/admin/membership/membershipPage.dart';
 import 'package:gymbroo/pages/admin/trainer/trainerPage.dart';
 import 'package:gymbroo/pages/admin/training/trainingPage.dart';
-import 'package:http/http.dart' as http; // Import http
-import 'dart:convert'; // Import json
-import 'package:shared_preferences/shared_preferences.dart'; // Import SharedPreferences
+import 'package:http/http.dart' as http;
+import 'dart:convert'; 
+import 'package:shared_preferences/shared_preferences.dart'; 
 
 class memberPage extends StatefulWidget {
   const memberPage({super.key});
@@ -17,17 +17,15 @@ class memberPage extends StatefulWidget {
 class _memberPageState extends State<memberPage> {
   int _currentIndex = 4;
 
-  List<dynamic> userData = []; // Data pengguna dari backend
-  bool _isLoading = true; // State untuk loading data
-  final String _baseUrl = 'http://localhost:3000/API'; // Your backend URL
+  List<dynamic> userData = [];
+  bool _isLoading = true; 
+  final String _baseUrl = 'http://localhost:3000/API'; 
 
   @override
   void initState() {
     super.initState();
-    _fetchUsers(); // Fetch data when the page initializes
+    _fetchUsers();
   }
-
-  // Function to fetch users list from the backend
   Future<void> _fetchUsers() async {
     setState(() {
       _isLoading = true;
@@ -39,8 +37,6 @@ class _memberPageState extends State<memberPage> {
 
       if (token == null) {
         _showSnackBar('Authentication token not found. Please log in again.', Colors.red);
-        // Optionally, navigate to login page if token is missing
-        // Navigator.pushReplacementNamed(context, '/login');
         return;
       }
 
@@ -54,8 +50,6 @@ class _memberPageState extends State<memberPage> {
 
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = json.decode(response.body);
-        // Perbaikan di sini: Akses langsung 'users' karena backend harus mengembalikan struktur yang konsisten.
-        // Jika backend Anda masih membungkusnya dalam 'respon', ubah kembali ke responseData['respon']['users'].
         setState(() {
           userData = responseData['users'];
         });
@@ -127,7 +121,6 @@ class _memberPageState extends State<memberPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // Header Section
             Container(
               width: double.infinity,
               padding: const EdgeInsets.all(24),
@@ -164,7 +157,6 @@ class _memberPageState extends State<memberPage> {
 
             const SizedBox(height: 24),
 
-            // Data Table
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 24),
@@ -177,7 +169,6 @@ class _memberPageState extends State<memberPage> {
                       ? const Center(child: CircularProgressIndicator(color: Color(0xFFE8D864)))
                       : Column(
                           children: [
-                            // Table Header
                             Container(
                               padding: const EdgeInsets.all(16),
                               decoration: const BoxDecoration(
@@ -257,7 +248,6 @@ class _memberPageState extends State<memberPage> {
                               ),
                             ),
 
-                            // Table Data
                             Expanded(
                               child: userData.isEmpty
                                   ? const Center(
@@ -358,7 +348,6 @@ class _memberPageState extends State<memberPage> {
 
             const SizedBox(height: 24),
 
-            // Bottom Navigation
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 16),
               child: Row(

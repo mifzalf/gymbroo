@@ -1,16 +1,14 @@
 import 'package:flutter/material.dart';
-import 'package:qr_flutter/qr_flutter.dart'; // Digunakan jika nanti ada QR string langsung dari Midtrans
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'package:url_launcher/url_launcher.dart'; // Untuk membuka URL Midtrans Snap
-
+import 'package:url_launcher/url_launcher.dart'; 
 class MembershipPaymentPage extends StatefulWidget {
   final String orderId;
-  final String transactionToken; // Midtrans token for payment (not directly used for display in this UI, but good to have)
+  final String transactionToken;
   final String productName;
   final int amount;
-  final String redirectUrl; // Midtrans Snap redirect URL (halaman pembayaran)
+  final String redirectUrl;
 
   const MembershipPaymentPage({
     super.key,
@@ -26,19 +24,15 @@ class MembershipPaymentPage extends StatefulWidget {
 }
 
 class _MembershipPaymentPageState extends State<MembershipPaymentPage> {
-  String _paymentStatus = 'PENDING'; // Status awal
+  String _paymentStatus = 'PENDING'; 
   bool _isCheckingStatus = false;
   String _message = 'Tap "Open Midtrans Payment Page" button below to pay via QRIS.';
-  final String _baseUrl = 'http://localhost:3000/API'; // URL backend Anda
+  final String _baseUrl = 'http://localhost:3000/API';
 
   @override
   void initState() {
     super.initState();
-    // Anda bisa menambahkan timer di sini untuk cek status otomatis
-    // Atau hanya mengandalkan tombol manual seperti yang diminta.
   }
-
-  // Fungsi untuk mengecek status pembayaran ke backend
   Future<void> _checkPaymentStatus() async {
     setState(() {
       _isCheckingStatus = true;
@@ -65,14 +59,13 @@ class _MembershipPaymentPageState extends State<MembershipPaymentPage> {
       if (response.statusCode == 200) {
         final Map<String, dynamic> responseData = json.decode(response.body);
         setState(() {
-          _paymentStatus = responseData['status']; // 'paid', 'pending', 'failed', 'expire', 'cancel', 'unknown'
-          _message = responseData['message']; // Message from backend
+          _paymentStatus = responseData['status'];
+          _message = responseData['message']; 
         });
 
         if (_paymentStatus == 'paid') {
           _showSnackBar('Payment successful! Membership activated.', Colors.green);
-          // Opsi: Kembali ke DashboardUser atau halaman sukses lainnya
-          Navigator.popUntil(context, (route) => route.isFirst); // Kembali ke root (DashboardUser)
+          Navigator.popUntil(context, (route) => route.isFirst);
         } else {
           _showSnackBar(_message, Colors.orange);
         }
@@ -125,8 +118,6 @@ class _MembershipPaymentPageState extends State<MembershipPaymentPage> {
               style: const TextStyle(color: Color(0xFFE8D864), fontSize: 22, fontWeight: FontWeight.bold),
             ),
             const SizedBox(height: 24),
-
-            // Display Payment Instructions / QR / Status
             if (_paymentStatus == 'PENDING' || _paymentStatus == 'Creating Payment...') ...[
               const Text(
                 'Please complete your payment via Midtrans.',
@@ -134,11 +125,10 @@ class _MembershipPaymentPageState extends State<MembershipPaymentPage> {
                 style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.w600),
               ),
               const SizedBox(height: 16),
-              // Tombol untuk membuka halaman pembayaran Midtrans Snap
               ElevatedButton(
                 onPressed: () async {
                   if (await canLaunchUrl(Uri.parse(widget.redirectUrl))) {
-                    await launchUrl(Uri.parse(widget.redirectUrl), mode: LaunchMode.externalApplication); // Open in external browser
+                    await launchUrl(Uri.parse(widget.redirectUrl), mode: LaunchMode.externalApplication); 
                   } else {
                     _showSnackBar('Could not launch payment page. URL: ${widget.redirectUrl}', Colors.red);
                   }
@@ -152,7 +142,6 @@ class _MembershipPaymentPageState extends State<MembershipPaymentPage> {
                 child: const Text('Open Midtrans Payment Page', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
               ),
               const SizedBox(height: 24),
-              // Tombol untuk cek status manual
               ElevatedButton(
                 onPressed: _isCheckingStatus ? null : _checkPaymentStatus,
                 style: ElevatedButton.styleFrom(
@@ -191,7 +180,7 @@ class _MembershipPaymentPageState extends State<MembershipPaymentPage> {
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: () {
-                  Navigator.popUntil(context, (route) => route.isFirst); // Go back to main dashboard
+                  Navigator.popUntil(context, (route) => route.isFirst); 
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFF00DCB7),
@@ -212,7 +201,7 @@ class _MembershipPaymentPageState extends State<MembershipPaymentPage> {
               const SizedBox(height: 24),
               ElevatedButton(
                 onPressed: () {
-                  Navigator.pop(context); // Go back to membership selection to try again
+                  Navigator.pop(context); 
                 },
                 style: ElevatedButton.styleFrom(
                   backgroundColor: const Color(0xFFE8D864),

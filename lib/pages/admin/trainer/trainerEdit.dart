@@ -17,17 +17,15 @@ class _EditTrainerPageState extends State<EditTrainerPage> {
   final TextEditingController _trainerNameController = TextEditingController();
   final TextEditingController _whatsappController = TextEditingController();
   bool _isLoading = false;
-  final String _baseUrl = 'http://localhost:3000/API'; // Your backend URL
+  final String _baseUrl = 'http://localhost:3000/API';
 
   @override
   void initState() {
     super.initState();
-    // Initialize controllers with received trainer data
-    _trainerNameController.text = widget.trainerData['username'] ?? ''; // Use 'username' key from backend
+    _trainerNameController.text = widget.trainerData['username'] ?? '';
     _whatsappController.text = widget.trainerData['whatsapp'] ?? '';
   }
 
-  // Function to handle updating a trainer
   void _updateTrainer() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
@@ -44,7 +42,7 @@ class _EditTrainerPageState extends State<EditTrainerPage> {
         }
 
         final response = await http.patch(
-          Uri.parse('$_baseUrl/admin/trainers/${widget.trainerData['id']}'), // Use trainer ID
+          Uri.parse('$_baseUrl/admin/trainers/${widget.trainerData['id']}'),
           headers: <String, String>{
             'Content-Type': 'application/json; charset=UTF-8',
             'Authorization': 'Bearer $token',
@@ -55,9 +53,9 @@ class _EditTrainerPageState extends State<EditTrainerPage> {
           }),
         );
 
-        if (response.statusCode == 200) { // Backend returns 200 for success
+        if (response.statusCode == 200) { 
           _showSnackBar('Trainer updated successfully!', Colors.green);
-          Navigator.pop(context, true); // Return true to previous page to refresh
+          Navigator.pop(context, true); 
         } else {
           final responseBody = json.decode(response.body);
           _showSnackBar(responseBody['message'] ?? 'Failed to update trainer.', Colors.red);
@@ -79,7 +77,6 @@ class _EditTrainerPageState extends State<EditTrainerPage> {
     );
   }
 
-  // Function to navigate back to previous page
   void _navigateBack() {
     Navigator.pop(context);
   }
@@ -91,7 +88,6 @@ class _EditTrainerPageState extends State<EditTrainerPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // Header with back button and title
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Row(
@@ -129,7 +125,6 @@ class _EditTrainerPageState extends State<EditTrainerPage> {
               ),
             ),
 
-            // Form content
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -139,7 +134,6 @@ class _EditTrainerPageState extends State<EditTrainerPage> {
                     children: [
                       const SizedBox(height: 24),
 
-                      // Trainer Name Input
                       Container(
                         decoration: BoxDecoration(
                           color: const Color(0xFF474242),
@@ -158,7 +152,6 @@ class _EditTrainerPageState extends State<EditTrainerPage> {
                             if (value == null || value.isEmpty) {
                               return 'Trainer Name is required.';
                             }
-                            // Simplified validation: only check length
                             if (value.length < 1 || value.length > 30) {
                               return 'Username must be between 1 and 30 characters.';
                             }
@@ -169,7 +162,6 @@ class _EditTrainerPageState extends State<EditTrainerPage> {
 
                       const SizedBox(height: 16),
 
-                      // Whatsapp Input
                       Container(
                         decoration: BoxDecoration(
                           color: const Color(0xFF474242),
@@ -196,7 +188,6 @@ class _EditTrainerPageState extends State<EditTrainerPage> {
 
                       const SizedBox(height: 32),
 
-                      // Update Button
                       SizedBox(
                         width: double.infinity,
                         height: 56,

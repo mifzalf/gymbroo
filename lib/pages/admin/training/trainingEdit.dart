@@ -49,24 +49,20 @@ class _EditTrainingPageState extends State<EditTrainingPage> {
   @override
   void initState() {
     super.initState();
-    // Initialize controllers with received training data
     _titleController.text = widget.trainingData['title'] ?? '';
     _descriptionController.text = widget.trainingData['description'] ?? '';
     _priceController.text = widget.trainingData['price']?.toString() ?? '';
-    // Use the actual day value from backend if available, otherwise fallback
-    _selectedDay = widget.trainingData['days']; // Set initial value for dropdown
-    _timeStartController.text = widget.trainingData['time_start']?.substring(0, 5) ?? ''; // Format time_start
+    _selectedDay = widget.trainingData['days']; 
+    _timeStartController.text = widget.trainingData['time_start']?.substring(0, 5) ?? ''; 
     _totalSessionController.text = widget.trainingData['total_session']?.toString() ?? '';
     
-    // Set initial selected values for dropdowns
     _selectedTrainerId = widget.trainingData['trainer_id'];
 
-    // Set URL for existing background image
     if (widget.trainingData['background'] != null && widget.trainingData['background'] != 'default.png') {
       _currentBackgroundImageUrl = _imagePathPrefix + widget.trainingData['background'];
     }
 
-    _fetchTrainersForDropdown(); // Fetch trainers for dropdown
+    _fetchTrainersForDropdown(); 
   }
 
   @override
@@ -135,7 +131,6 @@ class _EditTrainingPageState extends State<EditTrainingPage> {
     }
   }
 
-  // >>> PERUBAHAN DI SINI: Format waktu ke HH:MM (24 jam)
   Future<void> _selectTime(BuildContext context) async {
     final TimeOfDay? picked = await showTimePicker(
       context: context,
@@ -153,9 +148,7 @@ class _EditTrainingPageState extends State<EditTrainingPage> {
       });
     }
   }
-  // <<< AKHIR PERUBAHAN
 
-  // Function to handle updating a training
   void _updateTraining() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
@@ -172,7 +165,7 @@ class _EditTrainingPageState extends State<EditTrainingPage> {
         }
 
         var request = http.MultipartRequest(
-          'PATCH', // Using PATCH for update
+          'PATCH', 
           Uri.parse('$_baseUrl/admin/trainings/${widget.trainingData['id']}'),
         );
         request.headers['Authorization'] = 'Bearer $token';
@@ -185,7 +178,6 @@ class _EditTrainingPageState extends State<EditTrainingPage> {
         request.fields['totalSession'] = _totalSessionController.text;
         request.fields['trainerId'] = _selectedTrainerId?.toString() ?? '';
 
-        // Add background file if selected
         if (kIsWeb && _pickedXFile != null) {
           final String? mimeType = lookupMimeType(_pickedXFile!.name);
           request.files.add(
@@ -248,7 +240,6 @@ class _EditTrainingPageState extends State<EditTrainingPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // Header
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Row(
@@ -286,7 +277,6 @@ class _EditTrainingPageState extends State<EditTrainingPage> {
               ),
             ),
 
-            // Form content
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -296,7 +286,6 @@ class _EditTrainingPageState extends State<EditTrainingPage> {
                     children: [
                       const SizedBox(height: 24),
 
-                      // Background image upload section
                       GestureDetector(
                         onTap: _pickImage,
                         child: Container(
@@ -328,7 +317,6 @@ class _EditTrainingPageState extends State<EditTrainingPage> {
 
                       const SizedBox(height: 24),
 
-                      // Title Input
                       Container(
                         decoration: BoxDecoration(color: const Color(0xFF474242), borderRadius: BorderRadius.circular(12)),
                         child: TextFormField(
@@ -341,7 +329,6 @@ class _EditTrainingPageState extends State<EditTrainingPage> {
 
                       const SizedBox(height: 16),
 
-                      // Price Input
                       Container(
                         decoration: BoxDecoration(color: const Color(0xFF474242), borderRadius: BorderRadius.circular(12)),
                         child: TextFormField(
@@ -359,7 +346,6 @@ class _EditTrainingPageState extends State<EditTrainingPage> {
 
                       const SizedBox(height: 16),
 
-                      // Day Dropdown
                       Container(
                         decoration: BoxDecoration(color: const Color(0xFF474242), borderRadius: BorderRadius.circular(12)),
                         padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -382,7 +368,6 @@ class _EditTrainingPageState extends State<EditTrainingPage> {
 
                       const SizedBox(height: 16),
 
-                      // Time Start Input (with time picker)
                       Container(
                         decoration: BoxDecoration(color: const Color(0xFF474242), borderRadius: BorderRadius.circular(12)),
                         child: TextFormField(
@@ -402,7 +387,6 @@ class _EditTrainingPageState extends State<EditTrainingPage> {
 
                       const SizedBox(height: 16),
 
-                      // Total Session Input
                       Container(
                         decoration: BoxDecoration(color: const Color(0xFF474242), borderRadius: BorderRadius.circular(12)),
                         child: TextFormField(
@@ -420,7 +404,6 @@ class _EditTrainingPageState extends State<EditTrainingPage> {
 
                       const SizedBox(height: 16),
 
-                      // Trainer Dropdown
                       Container(
                         decoration: BoxDecoration(color: const Color(0xFF474242), borderRadius: BorderRadius.circular(12)),
                         padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -443,7 +426,6 @@ class _EditTrainingPageState extends State<EditTrainingPage> {
 
                       const SizedBox(height: 16),
 
-                      // Description Input (Multi-line)
                       Container(
                         decoration: BoxDecoration(color: const Color(0xFF474242), borderRadius: BorderRadius.circular(12)),
                         child: TextFormField(
@@ -457,7 +439,6 @@ class _EditTrainingPageState extends State<EditTrainingPage> {
 
                       const SizedBox(height: 32),
 
-                      // Update Button
                       SizedBox(
                         width: double.infinity,
                         height: 56,

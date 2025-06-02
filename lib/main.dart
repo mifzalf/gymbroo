@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import 'pages/startPages.dart';
+import 'package:gymbroo/pages/SplashScreen.dart';
 
 void main() {
   runApp(const MyApp());
@@ -35,7 +35,7 @@ class MyApp extends StatelessWidget {
           ),
         ),
       ),
-      home: const StartPage(),
+      home: const SplashScreen(),
       
     );
   }

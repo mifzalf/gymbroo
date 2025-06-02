@@ -6,8 +6,8 @@ import 'package:http/http.dart' as http;
 import 'package:shared_preferences/shared_preferences.dart';
 import 'dart:convert';
 import 'package:flutter/foundation.dart' show kIsWeb;
-import 'package:mime/mime.dart'; // Import mime package
-import 'package:http_parser/http_parser.dart'; // Import for MediaType
+import 'package:mime/mime.dart'; 
+import 'package:http_parser/http_parser.dart';
 
 class CreateMembershipPage extends StatefulWidget {
   const CreateMembershipPage({super.key});
@@ -22,12 +22,12 @@ class _CreateMembershipPageState extends State<CreateMembershipPage> {
   final TextEditingController _priceController = TextEditingController();
   final TextEditingController _durationController = TextEditingController();
 
-  File? _backgroundImage; // For non-web platforms
-  Uint8List? _backgroundImageBytes; // For web platforms
-  XFile? _pickedXFile; // Store XFile to get name and mimeType
+  File? _backgroundImage; 
+  Uint8List? _backgroundImageBytes; 
+  XFile? _pickedXFile;
   final ImagePicker _picker = ImagePicker();
   bool _isLoading = false;
-  final String _baseUrl = 'http://localhost:3000/API'; // Your backend URL
+  final String _baseUrl = 'http://localhost:3000/API'; 
 
   Future<void> _pickImage() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);
@@ -37,13 +37,13 @@ class _CreateMembershipPageState extends State<CreateMembershipPage> {
         setState(() {
           _backgroundImageBytes = bytes;
           _backgroundImage = null;
-          _pickedXFile = image; // Store XFile
+          _pickedXFile = image;
         });
       } else {
         setState(() {
           _backgroundImage = File(image.path);
           _backgroundImageBytes = null;
-          _pickedXFile = image; // Store XFile
+          _pickedXFile = image; 
         });
       }
     }
@@ -84,19 +84,19 @@ class _CreateMembershipPageState extends State<CreateMembershipPage> {
           final String? mimeType = lookupMimeType(_pickedXFile!.name);
           request.files.add(
             http.MultipartFile.fromBytes(
-              'background', // Field name must be "background" as per backend
+              'background', 
               _backgroundImageBytes!,
               filename: _pickedXFile!.name,
-              contentType: (mimeType != null) ? MediaType.parse(mimeType) : MediaType('image', 'jpeg'), // Default to jpeg if lookup fails
+              contentType: (mimeType != null) ? MediaType.parse(mimeType) : MediaType('image', 'jpeg'),
             ),
           );
         } else if (!kIsWeb && _backgroundImage != null) {
           final String? mimeType = lookupMimeType(_backgroundImage!.path);
           request.files.add(
             await http.MultipartFile.fromPath(
-              'background', // Field name must be "background" as per backend
+              'background', 
               _backgroundImage!.path,
-              filename: _pickedXFile?.name, // Use original XFile name if available
+              filename: _pickedXFile?.name, 
               contentType: (mimeType != null) ? MediaType.parse(mimeType) : null,
             ),
           );
@@ -106,7 +106,7 @@ class _CreateMembershipPageState extends State<CreateMembershipPage> {
         final responseBody = await response.stream.bytesToString();
         final decodedBody = json.decode(responseBody);
 
-        if (response.statusCode == 200) { // Backend returns 200, not 201
+        if (response.statusCode == 200) { 
           _showSnackBar('Membership created successfully!', Colors.green);
           Navigator.pop(context, true);
         } else if (response.statusCode == 401 || response.statusCode == 403) {
@@ -142,7 +142,6 @@ class _CreateMembershipPageState extends State<CreateMembershipPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // Header with back button and title
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Row(
@@ -180,7 +179,6 @@ class _CreateMembershipPageState extends State<CreateMembershipPage> {
               ),
             ),
 
-            // Form content
             Expanded(
               child: SingleChildScrollView(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -190,7 +188,6 @@ class _CreateMembershipPageState extends State<CreateMembershipPage> {
                     children: [
                       const SizedBox(height: 24),
 
-                      // Background image upload section
                       GestureDetector(
                         onTap: _pickImage,
                         child: Container(
@@ -260,7 +257,6 @@ class _CreateMembershipPageState extends State<CreateMembershipPage> {
 
                       const SizedBox(height: 24),
 
-                      // Membership type input
                       Container(
                         decoration: BoxDecoration(
                           color: const Color(0xFF474242),
@@ -286,7 +282,6 @@ class _CreateMembershipPageState extends State<CreateMembershipPage> {
 
                       const SizedBox(height: 16),
 
-                      // Price input
                       Container(
                         decoration: BoxDecoration(
                           color: const Color(0xFF474242),
@@ -316,7 +311,6 @@ class _CreateMembershipPageState extends State<CreateMembershipPage> {
 
                       const SizedBox(height: 16),
 
-                      // Duration input
                       Container(
                         decoration: BoxDecoration(
                           color: const Color(0xFF474242),
@@ -346,7 +340,6 @@ class _CreateMembershipPageState extends State<CreateMembershipPage> {
 
                       const SizedBox(height: 32),
 
-                      // Create button
                       SizedBox(
                         width: double.infinity,
                         height: 56,

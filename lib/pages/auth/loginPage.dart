@@ -3,7 +3,7 @@ import 'package:gymbroo/pages/admin/dashboardPage.dart';
 import 'package:gymbroo/pages/users/dashboardPage.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
-import 'package:shared_preferences/shared_preferences.dart'; // Import untuk SharedPreferences
+import 'package:shared_preferences/shared_preferences.dart'; 
 
 import 'package:gymbroo/pages/auth/register.dart';
 
@@ -30,12 +30,10 @@ class _LoginPageState extends State<LoginPage> {
     super.dispose();
   }
 
-  // Fungsi untuk menangani logika login
   void _login() async {
-    // Validasi form sebelum mengirim permintaan
     if (_formKey.currentState!.validate()) {
       setState(() {
-        _isLoading = true; // Tampilkan indikator loading
+        _isLoading = true; 
       });
 
       try {
@@ -54,11 +52,9 @@ class _LoginPageState extends State<LoginPage> {
           final responseBody = json.decode(response.body);
           final String token = responseBody['token'];
           final String userType = responseBody['userType'];
-          
-          // Simpan token ke SharedPreferences
           final prefs = await SharedPreferences.getInstance();
           await prefs.setString('token', token);
-          print('Token disimpan: $token'); // Untuk debugging
+          print('Token disimpan: $token'); 
 
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -66,28 +62,19 @@ class _LoginPageState extends State<LoginPage> {
               backgroundColor: Colors.green,
             ),
           );
-
-          // Navigasi berdasarkan tipe user
           if (userType == 'admin') {
-            // Jika backend mengembalikan nama admin, Anda bisa meneruskannya
-            // Contoh: final String adminUsername = responseBody['admin']['username'] ?? 'Admin';
             Navigator.pushReplacement(
               context,
               MaterialPageRoute(
                 builder: (context) => const dashboardAdmin(
-                  adminName: "Admin Gymbroo", // Ganti dengan nama admin asli jika tersedia dari API
+                  adminName: "Admin Gymbroo", 
                 ),
               ),
             );
           } else if (userType == 'user') {
-            // TODO: Backend Anda saat ini hanya mengembalikan {token, userType} untuk login.
-            // Untuk mengisi data userName, userPhotoUrl, membershipStatus di DashboardUser,
-            // Anda perlu memodifikasi respons API login backend agar menyertakan data pengguna lengkap.
-            // Contoh data placeholder:
-            final String userName = "Pengguna Gymbroo"; // Ganti dengan nama pengguna asli dari API
-            // Asumsi URL foto profil disimpan di public/images/users/ di backend
-            final String userPhotoUrl = '$_baseUrl/images/users/default.png'; // Ganti dengan URL foto profil asli dari API
-            final String membershipStatus = "Member Aktif"; // Ganti dengan status membership asli dari API
+            final String userName = "Pengguna Gymbroo"; 
+            final String userPhotoUrl = '$_baseUrl/images/users/default.png'; 
+            final String membershipStatus = "Member Aktif"; 
             
             Navigator.pushReplacement(
               context,
@@ -108,7 +95,6 @@ class _LoginPageState extends State<LoginPage> {
             );
           }
         } else {
-          // Jika login gagal (status code selain 200)
           final responseBody = json.decode(response.body);
           final String errorMessage = responseBody['message'] ?? 'Login gagal. Silakan cek kembali kredensial Anda.';
           ScaffoldMessenger.of(context).showSnackBar(
@@ -119,17 +105,16 @@ class _LoginPageState extends State<LoginPage> {
           );
         }
       } catch (e) {
-        // Tangani error jaringan atau lainnya
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Text('Terjadi kesalahan: $e'),
             backgroundColor: Colors.red,
           ),
         );
-        print('Error login: $e'); // Untuk debugging
+        print('Error login: $e'); 
       } finally {
         setState(() {
-          _isLoading = false; // Sembunyikan indikator loading
+          _isLoading = false; 
         });
       }
     }
@@ -166,7 +151,7 @@ class _LoginPageState extends State<LoginPage> {
                     const TextSpan(
                       text: 'to your\nAccount',
                       style: TextStyle(
-                        color: Color(0xFF007662), // Teal color
+                        color: Color(0xFF007662), 
                       ),
                     ),
                   ],
@@ -175,18 +160,16 @@ class _LoginPageState extends State<LoginPage> {
 
               const SizedBox(height: 40),
 
-              // Form untuk Email dan Password
               Form(
-                key: _formKey, // Gunakan GlobalKey untuk validasi form
+                key: _formKey,
                 child: Column(
                   children: [
-                    // Email Field
                     Container(
                       decoration: BoxDecoration(
                         color: const Color(0xFF2D2D2D),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: TextFormField( // Menggunakan TextFormField untuk validasi
+                      child: TextFormField( 
                         controller: _emailController,
                         keyboardType: TextInputType.emailAddress,
                         style: const TextStyle(
@@ -227,15 +210,14 @@ class _LoginPageState extends State<LoginPage> {
 
                     const SizedBox(height: 20),
 
-                    // Password Field dengan Toggle Visibility
                     Container(
                       decoration: BoxDecoration(
                         color: const Color(0xFF2D2D2D),
                         borderRadius: BorderRadius.circular(12),
                       ),
-                      child: TextFormField( // Menggunakan TextFormField untuk validasi
+                      child: TextFormField( 
                         controller: _passwordController,
-                        obscureText: !_isPasswordVisible, // Atur berdasarkan state
+                        obscureText: !_isPasswordVisible, 
                         style: const TextStyle(
                           color: Colors.white,
                           fontSize: 16,
@@ -286,13 +268,12 @@ class _LoginPageState extends State<LoginPage> {
 
               const SizedBox(height: 20),
 
-              // Tombol Login
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(
-                  onPressed: _isLoading ? null : _login, // Tombol dinonaktifkan saat loading
+                  onPressed: _isLoading ? null : _login, 
                   style: ElevatedButton.styleFrom(
-                    backgroundColor: const Color(0xFFE8D864), // Warna Kuning
+                    backgroundColor: const Color(0xFFE8D864),
                     foregroundColor: Colors.black,
                     padding: const EdgeInsets.symmetric(vertical: 18),
                     shape: RoundedRectangleBorder(
@@ -301,7 +282,7 @@ class _LoginPageState extends State<LoginPage> {
                     elevation: 0,
                   ),
                   child: _isLoading
-                      ? const CircularProgressIndicator(color: Colors.black) // Tampilkan loading spinner
+                      ? const CircularProgressIndicator(color: Colors.black) 
                       : const Text(
                           'Login',
                           style: TextStyle(
@@ -312,14 +293,13 @@ class _LoginPageState extends State<LoginPage> {
                 ),
               ),
 
-              const Spacer(), // Mengambil sisa ruang vertikal
+              const Spacer(), 
 
-              // Bagian Pendaftaran (Register Section)
               Container(
                 width: double.infinity,
                 padding: const EdgeInsets.all(20),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF007662), // Warna Teal
+                  color: const Color(0xFF007662),
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Row(
@@ -338,7 +318,7 @@ class _LoginPageState extends State<LoginPage> {
                         Text(
                           "Akun? Daftar Sekarang",
                           style: TextStyle(
-                            color: Color(0xFFE8D864), // Warna Kuning
+                            color: Color(0xFFE8D864), 
                             fontSize: 16,
                             fontWeight: FontWeight.bold,
                           ),
@@ -347,7 +327,6 @@ class _LoginPageState extends State<LoginPage> {
                     ),
                     GestureDetector(
                       onTap: () {
-                        // Navigasi ke halaman Register
                         Navigator.push(
                           context,
                           MaterialPageRoute(
@@ -359,7 +338,7 @@ class _LoginPageState extends State<LoginPage> {
                         width: 48,
                         height: 48,
                         decoration: BoxDecoration(
-                          color: const Color(0xFFE8D864), // Warna Kuning
+                          color: const Color(0xFFE8D864),
                           borderRadius: BorderRadius.circular(24),
                         ),
                         child: const Icon(

@@ -15,9 +15,8 @@ class _CreateTrainerPageState extends State<CreateTrainerPage> {
   final TextEditingController _trainerNameController = TextEditingController();
   final TextEditingController _whatsappController = TextEditingController();
   bool _isLoading = false;
-  final String _baseUrl = 'http://localhost:3000/API'; // Your backend URL
+  final String _baseUrl = 'http://localhost:3000/API';
 
-  // Function to handle creating a trainer
   void _createTrainer() async {
     if (_formKey.currentState!.validate()) {
       setState(() {
@@ -69,7 +68,6 @@ class _CreateTrainerPageState extends State<CreateTrainerPage> {
     );
   }
 
-  // Function to navigate back to previous page
   void _navigateBack() {
     Navigator.pop(context);
   }
@@ -81,7 +79,6 @@ class _CreateTrainerPageState extends State<CreateTrainerPage> {
       body: SafeArea(
         child: Column(
           children: [
-            // Header with back button and title
             Padding(
               padding: const EdgeInsets.all(16.0),
               child: Row(
@@ -119,7 +116,6 @@ class _CreateTrainerPageState extends State<CreateTrainerPage> {
               ),
             ),
 
-            // Form content
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 16.0),
@@ -129,7 +125,6 @@ class _CreateTrainerPageState extends State<CreateTrainerPage> {
                     children: [
                       const SizedBox(height: 24),
 
-                      // Trainer Name Input
                       Container(
                         decoration: BoxDecoration(
                           color: const Color(0xFF474242),
@@ -148,7 +143,6 @@ class _CreateTrainerPageState extends State<CreateTrainerPage> {
                             if (value == null || value.isEmpty) {
                               return 'Trainer Name is required.';
                             }
-                            // Simplified validation: only check length
                             if (value.length < 1 || value.length > 30) {
                               return 'Username must be between 1 and 30 characters.';
                             }
@@ -159,7 +153,6 @@ class _CreateTrainerPageState extends State<CreateTrainerPage> {
 
                       const SizedBox(height: 16),
 
-                      // Whatsapp Input
                       Container(
                         decoration: BoxDecoration(
                           color: const Color(0xFF474242),
@@ -186,7 +179,6 @@ class _CreateTrainerPageState extends State<CreateTrainerPage> {
 
                       const SizedBox(height: 32),
 
-                      // Create Button
                       SizedBox(
                         width: double.infinity,
                         height: 56,
