@@ -28,8 +28,8 @@ class _TrainingUserState extends State<TrainingUser> {
 
   List<dynamic> _trainingPrograms = [];
   bool _isLoading = true; 
-  final String _baseUrl = 'http://localhost:3000/API'; 
-  final String _trainingImagePathPrefix = 'http://localhost:3000/images/trainings/';
+  final String _baseUrl = 'http://192.168.100.8:3000/API'; 
+  final String _trainingImagePathPrefix = 'http://192.168.100.8:3000/images/trainings/';
 
   @override
   void initState() {

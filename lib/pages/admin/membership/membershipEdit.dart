@@ -31,8 +31,8 @@ class _EditMembershipPageState extends State<EditMembershipPage> {
   final ImagePicker _picker = ImagePicker();
   bool _isLoading = false;
 
-  final String _baseUrl = 'http://localhost:3000/API'; 
-  final String _imagePathPrefix = 'http://localhost:3000/images/memberships/'; 
+  final String _baseUrl = 'http://192.168.100.8:3000/API'; 
+  final String _imagePathPrefix = 'http://192.168.100.8:3000/images/memberships/'; 
 
   @override
   void initState() {

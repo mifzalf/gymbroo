@@ -43,10 +43,10 @@ class _ProfileUserState extends State<ProfileUser> {
   
   bool _isLoading = true; 
   bool _isLoggingOut = false;
-  final String _baseUrl = 'http://localhost:3000/API'; 
-  final String _userImagePathPrefix = 'http://localhost:3000/images/users/';
-  final String _membershipImagePathPrefix = 'http://localhost:3000/images/memberships/';
-  final String _trainingImagePathPrefix = 'http://localhost:3000/images/trainings/';
+  final String _baseUrl = 'http://192.168.100.8:3000/API'; 
+  final String _userImagePathPrefix = 'http://192.168.100.8:3000/images/users/';
+  final String _membershipImagePathPrefix = 'http://192.168.100.8:3000/images/memberships/';
+  final String _trainingImagePathPrefix = 'http://192.168.100.8:3000/images/trainings/';
 
   @override
   void initState() {
@@ -162,7 +162,6 @@ class _ProfileUserState extends State<ProfileUser> {
         Navigator.pushReplacement(context, MaterialPageRoute(builder: (context) => const TrainingUser()));
         break;
       case 3:
-        // Stay on current page
         break;
     }
   }

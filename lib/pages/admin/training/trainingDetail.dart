@@ -19,8 +19,8 @@ class TrainingDetailPage extends StatefulWidget {
 class _TrainingDetailPageState extends State<TrainingDetailPage> {
   Map<String, dynamic> _trainerInfo = {};
   bool _isLoadingTrainer = true;
-  final String _baseUrl = 'http://localhost:3000/API';
-  final String _imagePathPrefix = 'http://localhost:3000/images/trainings/';
+  final String _baseUrl = 'http://192.168.100.8:3000/API';
+  final String _imagePathPrefix = 'http://192.168.100.8:3000/images/trainings/';
 
   @override
   void initState() {

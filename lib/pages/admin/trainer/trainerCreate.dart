@@ -15,7 +15,7 @@ class _CreateTrainerPageState extends State<CreateTrainerPage> {
   final TextEditingController _trainerNameController = TextEditingController();
   final TextEditingController _whatsappController = TextEditingController();
   bool _isLoading = false;
-  final String _baseUrl = 'http://localhost:3000/API';
+  final String _baseUrl = 'http://192.168.100.8:3000/API';
 
   void _createTrainer() async {
     if (_formKey.currentState!.validate()) {

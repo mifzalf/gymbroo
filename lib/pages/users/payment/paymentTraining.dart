@@ -28,7 +28,7 @@ class _TrainingPaymentPageState extends State<TrainingPaymentPage> {
   String _paymentStatus = 'PENDING';
   bool _isCheckingStatus = false;
   String _message = 'Tap "Open Midtrans Payment Page" button below to pay for your training.'; 
-  final String _baseUrl = 'http://localhost:3000/API';
+  final String _baseUrl = 'http://192.168.100.8:3000/API';
 
   @override
   void initState() {

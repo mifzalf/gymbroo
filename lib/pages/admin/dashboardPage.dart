@@ -28,7 +28,7 @@ class _dashboardAdminState extends State<dashboardAdmin> {
   int totalTrainings = 0;
   bool _isLoading = true; 
   bool _isLoggingOut = false; 
-  final String _baseUrl = 'http://localhost:3000/API';
+  final String _baseUrl = 'http://192.168.100.8:3000/API';
 
   @override
   void initState() {

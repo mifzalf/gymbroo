@@ -22,8 +22,8 @@ class _UserTrainingDetailPageState extends State<UserTrainingDetailPage> {
   Map<String, dynamic>? _fullTrainingDetails;
   bool _isLoadingDetails = true;
   bool _isInitiatingPayment = false;
-  final String _baseUrl = 'http://localhost:3000/API';
-  final String _trainingImagePathPrefix = 'http://localhost:3000/images/trainings/';
+  final String _baseUrl = 'http://192.168.100.8:3000/API';
+  final String _trainingImagePathPrefix = 'http://192.168.100.8:3000/images/trainings/';
 
   @override
   void initState() {

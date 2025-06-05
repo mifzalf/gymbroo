@@ -22,7 +22,7 @@ class _TrainingPageState extends State<TrainingPage> {
 
   List<dynamic> trainingData = []; 
   bool _isLoading = true;
-  final String _baseUrl = 'http://localhost:3000/API'; 
+  final String _baseUrl = 'http://192.168.100.8:3000/API'; 
 
   @override
   void initState() {

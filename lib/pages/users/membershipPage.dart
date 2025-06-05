@@ -29,8 +29,8 @@ class _MembershipUserState extends State<MembershipUser> {
 
   List<dynamic> _membershipOptions = [];
   bool _isLoading = true;
-  final String _baseUrl = 'http://localhost:3000/API';
-  final String _membershipImagePathPrefix = 'http://localhost:3000/images/memberships/';
+  final String _baseUrl = 'http://192.168.100.8:3000/API';
+  final String _membershipImagePathPrefix = 'http://192.168.100.8:3000/images/memberships/';
 
   @override
   void initState() {

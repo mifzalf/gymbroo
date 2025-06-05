@@ -19,7 +19,7 @@ class _memberPageState extends State<memberPage> {
 
   List<dynamic> userData = [];
   bool _isLoading = true; 
-  final String _baseUrl = 'http://localhost:3000/API'; 
+  final String _baseUrl = 'http://192.168.100.8:3000/API'; 
 
   @override
   void initState() {

@@ -44,8 +44,8 @@ class _EditProfilePageState extends State<EditProfilePage> {
   bool _isConfirmPasswordVisible = false;
   bool _isLoading = false;
 
-  final String _baseUrl = 'http://localhost:3000/API';
-  final String _userImagePathPrefix = 'http://localhost:3000/images/users/';
+  final String _baseUrl = 'http://192.168.100.8:3000/API';
+  final String _userImagePathPrefix = 'http://192.168.100.8:3000/images/users/';
 
   @override
   void initState() {

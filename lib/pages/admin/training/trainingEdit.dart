@@ -35,8 +35,8 @@ class _EditTrainingPageState extends State<EditTrainingPage> {
   final ImagePicker _picker = ImagePicker();
   bool _isLoading = false;
 
-  final String _baseUrl = 'http://localhost:3000/API';
-  final String _imagePathPrefix = 'http://localhost:3000/images/trainings/';
+  final String _baseUrl = 'http://192.168.100.8:3000/API';
+  final String _imagePathPrefix = 'http://192.168.100.8:3000/images/trainings/';
 
   List<dynamic> _trainers = [];
   String? _selectedDay;

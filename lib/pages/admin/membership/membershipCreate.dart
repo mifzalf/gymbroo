@@ -27,7 +27,7 @@ class _CreateMembershipPageState extends State<CreateMembershipPage> {
   XFile? _pickedXFile;
   final ImagePicker _picker = ImagePicker();
   bool _isLoading = false;
-  final String _baseUrl = 'http://localhost:3000/API'; 
+  final String _baseUrl = 'http://192.168.100.8:3000/API'; 
 
   Future<void> _pickImage() async {
     final XFile? image = await _picker.pickImage(source: ImageSource.gallery);

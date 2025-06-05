@@ -38,10 +38,10 @@ class _DashboardUserState extends State<DashboardUser> {
   List<dynamic> _userTrainings = [];
   
   bool _isLoading = true;
-  final String _baseUrl = 'http://localhost:3000/API'; // Ubah ke IP lokal Anda
-  final String _userImagePathPrefix = 'http://localhost:3000/images/users/';
-  final String _membershipImagePathPrefix = 'http://localhost:3000/images/memberships/';
-  final String _trainingImagePathPrefix = 'http://localhost:3000/images/trainings/';
+  final String _baseUrl = 'http://192.168.100.8:3000/API';
+  final String _userImagePathPrefix = 'http://192.168.100.8:3000/images/users/';
+  final String _membershipImagePathPrefix = 'http://192.168.100.8:3000/images/memberships/';
+  final String _trainingImagePathPrefix = 'http://192.168.100.8:3000/images/trainings/';
 
   @override
   void initState() {
@@ -111,7 +111,6 @@ class _DashboardUserState extends State<DashboardUser> {
         _userTrainings = responseData['trainingUsers'] ?? [];
         
         setState(() {
-          // UI akan diperbarui dengan data baru
         });
         _showSnackBar('Dashboard data loaded successfully!', Colors.green);
 

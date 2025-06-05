@@ -35,7 +35,6 @@ class StartPage extends StatelessWidget {
                 children: [
                   const Spacer(flex: 5),
                   
-                  // Welcome text
                   Text(
                     'Welcome to',
                     style: Theme.of(context).textTheme.bodyLarge?.copyWith(
@@ -47,11 +46,10 @@ class StartPage extends StatelessWidget {
                   
                   const SizedBox(height: 8),
                   
-                  // GYMBROO title
                   Text(
                     'GYMBROO',
                     style: Theme.of(context).textTheme.headlineLarge?.copyWith(
-                      color: const Color(0xFFE8D864), // Yellow color from image
+                      color: const Color(0xFFE8D864), 
                       fontSize: 48,
                       fontWeight: FontWeight.bold,
                       letterSpacing: 2.0,
@@ -60,7 +58,6 @@ class StartPage extends StatelessWidget {
                   
                   const SizedBox(height: 24),
                   
-                  // Description text
                   Text(
                     'Get ready to be the best version of yourself.\nCome on, it\'s time to move and prove you can!',
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
@@ -73,14 +70,12 @@ class StartPage extends StatelessWidget {
                   
                   const Spacer(flex: 1),
                   
-                  // Start button
                   Padding(
                     padding: const EdgeInsets.only(bottom: 40.0),
                     child: Align(
                       alignment: Alignment.centerRight,
                       child: GestureDetector(
                         onTap: () {
-                          // Navigate to login page
                           Navigator.push(
                             context,
                             MaterialPageRoute(

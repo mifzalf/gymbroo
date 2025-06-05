@@ -17,7 +17,7 @@ class _EditTrainerPageState extends State<EditTrainerPage> {
   final TextEditingController _trainerNameController = TextEditingController();
   final TextEditingController _whatsappController = TextEditingController();
   bool _isLoading = false;
-  final String _baseUrl = 'http://localhost:3000/API';
+  final String _baseUrl = 'http://192.168.100.8:3000/API';
 
   @override
   void initState() {
